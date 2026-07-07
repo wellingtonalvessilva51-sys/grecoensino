@@ -8,6 +8,7 @@ Uso:
 
 from src.core.database import SessionLocal
 from src.core.tenancy import reset_current_tenant, set_current_tenant
+from src.modules.academico import service as academico
 from src.modules.identidade import service as identidade
 from src.modules.identidade.schemas import UsuarioCreate
 from src.modules.tenancy import service as tenancy
@@ -35,6 +36,12 @@ def main() -> None:
             email = f"admin@{dados.subdominio}.dev"
             token = set_current_tenant(tenant.id)
             try:
+                config = academico.obter_ou_criar_config(db)
+                print(
+                    f"  config acadêmica: média mín {config.media_minima} / "
+                    f"freq mín {config.frequencia_minima_percentual}%"
+                )
+
                 if identidade.buscar_usuario_por_email(db, email) is not None:
                     print(f"  admin existe: {email}")
                     continue

@@ -17,6 +17,8 @@ from src.modules.academico.schemas import (
     AnoLetivoRead,
     AtribuicaoCreate,
     AtribuicaoRead,
+    ConfigAcademicaRead,
+    ConfigAcademicaUpdate,
     CursoCreate,
     CursoRead,
     DisciplinaCreate,
@@ -33,7 +35,23 @@ from src.shared.deps import Principal, get_current_user, require_papel
 router = APIRouter(prefix="/academico", tags=["academico"])
 
 _ESCRITA = require_papel("secretaria", "admin_tenant")
+_CONFIG = require_papel("admin_tenant", "secretaria")
 _CRIADO = status.HTTP_201_CREATED
+
+
+# --- Configuração acadêmica (regras por escola) -----------------------------
+@router.get("/config", response_model=ConfigAcademicaRead)
+def obter_config(db: Session = Depends(get_db), _: Principal = Depends(get_current_user)):
+    return service.obter_ou_criar_config(db)
+
+
+@router.put("/config", response_model=ConfigAcademicaRead)
+def atualizar_config(
+    dados: ConfigAcademicaUpdate,
+    db: Session = Depends(get_db),
+    _: Principal = Depends(_CONFIG),
+):
+    return service.atualizar_config(db, dados)
 
 
 # --- Ano letivo -------------------------------------------------------------

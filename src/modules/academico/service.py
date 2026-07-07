@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from src.core.exceptions import AppError
 from src.modules.academico.models import (
     AnoLetivo,
+    ConfigAcademica,
     Curso,
     Disciplina,
     Matricula,
@@ -24,6 +25,7 @@ from src.modules.academico.models import (
 from src.modules.academico.schemas import (
     AnoLetivoCreate,
     AtribuicaoCreate,
+    ConfigAcademicaUpdate,
     CursoCreate,
     DisciplinaCreate,
     MatriculaCreate,
@@ -32,6 +34,14 @@ from src.modules.academico.schemas import (
 )
 from src.modules.pessoas import service as pessoas
 
+# Defaults sensatos: toda escola nova já nasce com regra definida (§4).
+CONFIG_DEFAULTS = {
+    "media_minima": 6.00,
+    "num_periodos": 4,
+    "pesos_periodos": [1, 1, 1, 1],
+    "frequencia_minima_percentual": 75.00,
+}
+
 
 def _ativos(model):
     return select(model).where(model.deleted_at.is_(None))
@@ -39,6 +49,29 @@ def _ativos(model):
 
 def _obter(db: Session, model, id_: uuid.UUID):
     return db.scalars(_ativos(model).where(model.id == id_)).first()
+
+
+# --- Configuração acadêmica (regras por escola) -----------------------------
+def obter_ou_criar_config(db: Session) -> ConfigAcademica:
+    """Config do tenant atual; cria com defaults na primeira vez (§4)."""
+    config = db.scalars(_ativos(ConfigAcademica)).first()
+    if config is None:
+        config = ConfigAcademica(**CONFIG_DEFAULTS)
+        db.add(config)
+        db.commit()
+        db.refresh(config)
+    return config
+
+
+def atualizar_config(db: Session, dados: ConfigAcademicaUpdate) -> ConfigAcademica:
+    config = obter_ou_criar_config(db)
+    config.media_minima = dados.media_minima
+    config.num_periodos = dados.num_periodos
+    config.pesos_periodos = [float(p) for p in dados.pesos_periodos]
+    config.frequencia_minima_percentual = dados.frequencia_minima_percentual
+    db.commit()
+    db.refresh(config)
+    return config
 
 
 # --- Ano letivo -------------------------------------------------------------

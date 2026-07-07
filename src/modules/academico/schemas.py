@@ -2,12 +2,39 @@
 
 import uuid
 from datetime import date
+from decimal import Decimal
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 SituacaoAno = Literal["aberto", "fechado"]
 SituacaoMatricula = Literal["ativa", "trancada", "transferida", "cancelada"]
+
+
+class ConfigAcademicaUpdate(BaseModel):
+    """Regras que a escola define. Todos os campos juntos (upsert)."""
+
+    media_minima: Decimal = Field(ge=0, le=10)
+    num_periodos: int = Field(ge=1, le=12)
+    pesos_periodos: list[Decimal] = Field(min_length=1)
+    frequencia_minima_percentual: Decimal = Field(ge=0, le=100)
+
+    @model_validator(mode="after")
+    def _validar(self) -> "ConfigAcademicaUpdate":
+        if len(self.pesos_periodos) != self.num_periodos:
+            raise ValueError("pesos_periodos deve ter exatamente num_periodos itens.")
+        if any(p <= 0 for p in self.pesos_periodos):
+            raise ValueError("Todo peso de período deve ser maior que zero.")
+        return self
+
+
+class ConfigAcademicaRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    media_minima: Decimal
+    num_periodos: int
+    pesos_periodos: list[Decimal]
+    frequencia_minima_percentual: Decimal
 
 
 class AnoLetivoCreate(BaseModel):

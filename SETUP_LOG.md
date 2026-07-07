@@ -11,7 +11,8 @@
 | Git | `C:\Program Files\Git\cmd` — configurado com `wellingtonalves.silva51@gmail.com` |
 | venv do projeto | `C:\Users\greco\gestao-educacional\venv` |
 | Docker Desktop | instalado via winget (`C:\Program Files\Docker\Docker\resources\bin\docker.exe`), client 29.6.1 |
-| WSL2 | 2.7.10, kernel 6.18.33.2 — instalado 2026-07-07, **aguardando reboot** |
+| WSL2 | 2.7.10, kernel 6.18.33.2 — instalado 2026-07-07, reboot feito, **operacional** |
+| PostgreSQL | container `gestao-postgres` (postgres:16), porta 5432, volume `gestao_pgdata`, DB `gestao_educacional` |
 
 Instalações feitas via `winget`: `Python.Python.3.12`, `Git.Git`, `Docker.DockerDesktop`.
 
@@ -59,14 +60,29 @@ Testes (`pytest`) passando ao final de cada passo. Migrations 0001→0004 encade
 6. Recursos `VirtualMachinePlatform`/WSL ativados, mas exigem **REBOOT** (RebootPending=True,
    erro `WSL_E_WSL_OPTIONAL_COMPONENT_REQUIRED`).
 
-## PRÓXIMOS PASSOS (retomar após reboot)
+## Ambiente de banco concluído (2026-07-07, após reboot)
 
-1. **Reiniciar o Windows** (pendente).
-2. Abrir **Docker Desktop**, aguardar "Engine running".
-3. Verificar daemon: `docker version` (Server deve responder).
-4. Subir Postgres local via Docker (container).
-5. Criar `.env` a partir de `.env.example` com a `DATABASE_URL` do Postgres.
-6. Rodar migrations: `alembic upgrade head`.
-7. Rodar seed de desenvolvimento: `python scripts/seed_dev.py` (`seed_dev`).
+Bloqueio Docker/WSL2 **resolvido**. Executado com sucesso:
 
-> Comandos usam o Python do venv: `.\venv\Scripts\python.exe -m alembic upgrade head` etc.
+1. Reboot feito → `wsl --status` e `wsl --version` OK (2.7.10), distro `docker-desktop` Running.
+2. Docker Desktop com engine WSL2 no ar → `docker version` Server 29.6.1 respondendo.
+3. Postgres subido: `docker run -d --name gestao-postgres -e POSTGRES_USER=postgres
+   -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=gestao_educacional -p 5432:5432
+   -v gestao_pgdata:/var/lib/postgresql/data postgres:16`.
+4. `.env` criado a partir de `.env.example` (ignorado pelo git; `DATABASE_URL` aponta pro container).
+5. `alembic upgrade head` → migrations 0001→0004 aplicadas.
+6. `python -m scripts.seed_dev` → tenants demo (escola-a, escola-b) + admins
+   (admin@escola-a.dev / admin@escola-b.dev, senha `admin12345`).
+7. `pytest` → **36 passed**. Smoke test `GET /health` → 200 OK.
+
+**Como religar o banco em nova sessão:** `docker start gestao-postgres` (o container e o
+volume `gestao_pgdata` persistem; dados do seed continuam lá).
+
+> Comandos usam o Python do venv: `.\venv\Scripts\python.exe -m alembic upgrade head`,
+> `.\venv\Scripts\python.exe -m scripts.seed_dev`, `.\venv\Scripts\python.exe -m pytest`.
+
+## PRÓXIMO PASSO DE PRODUTO
+
+Passo 6 do `CLAUDE.md`: **Notas e Frequência** (núcleo de valor) — fatia vertical
+model → migration → schema → service → router → teste. Regra de cálculo de média/situação
+**TODO: definir com a escola-piloto** antes de hardcodar.

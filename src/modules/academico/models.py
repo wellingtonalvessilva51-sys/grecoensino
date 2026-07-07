@@ -8,10 +8,50 @@ módulo pessoas — a validação de existência é feita via pessoas.service (�
 import uuid
 from datetime import date
 
-from sqlalchemy import ForeignKey, Integer, String, UniqueConstraint, Uuid
+from sqlalchemy import (
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+    UniqueConstraint,
+    Uuid,
+)
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.types import JSON
 
 from src.shared.models import DomainBase
+
+# JSON portável: JSONB no Postgres, JSON genérico no SQLite (testes).
+JSONLista = JSON().with_variant(JSONB(), "postgresql")
+
+
+class ConfigAcademica(DomainBase):
+    """Regras acadêmicas configuráveis por escola (uma linha por tenant).
+
+    Diferencial do produto (CLAUDE.md §4): média/situação e frequência mínima
+    nunca são hardcoded — cada escola define. Uma linha por tenant (uq abaixo).
+    """
+
+    __tablename__ = "config_academica"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", name="uq_config_academica_tenant"),
+    )
+
+    # Média mínima para aprovação (ex.: 6,00). Escala 0–10.
+    media_minima: Mapped[float] = mapped_column(
+        Numeric(4, 2), nullable=False, default=6.00
+    )
+    # Quantos períodos compõem o ano letivo (ex.: 4 bimestres).
+    num_periodos: Mapped[int] = mapped_column(Integer, nullable=False, default=4)
+    # Peso de cada período; len == num_periodos. Default: peso igual.
+    pesos_periodos: Mapped[list] = mapped_column(
+        JSONLista, nullable=False, default=lambda: [1, 1, 1, 1]
+    )
+    # % mínimo de presença sobre os dias letivos (ex.: 75,00).
+    frequencia_minima_percentual: Mapped[float] = mapped_column(
+        Numeric(5, 2), nullable=False, default=75.00
+    )
 
 
 class AnoLetivo(DomainBase):
