@@ -1,0 +1,10 @@
+[project]
+name = "gestao-educacional"
+version = "0.1.0"
+description = "SaaS de gestão educacional — monólito modular (MVP)"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+# Permite `from src.main import app` sem instalar o pacote.
+pythonpath = ["."]
+testpaths = ["tests"]
