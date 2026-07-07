@@ -17,6 +17,7 @@ from src.shared.models import Base
 # Importe aqui os models de cada módulo à medida que forem criados.
 from src.modules.tenancy import models as _tenancy_models  # noqa: F401
 from src.modules.identidade import models as _identidade_models  # noqa: F401
+from src.modules.pessoas import models as _pessoas_models  # noqa: F401
 # ---------------------------------------------------------------------------
 
 config = context.config
