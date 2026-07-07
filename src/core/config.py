@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     # Auth (usado a partir da fatia de Identidade)
     jwt_secret: str = "troque-em-producao"
     jwt_access_expire_minutes: int = 15
+    jwt_refresh_expire_days: int = 30
 
     # IA (Anthropic)
     anthropic_api_key: str | None = None

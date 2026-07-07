@@ -47,6 +47,7 @@ if settings.environment == "development":
         return {"tenant_id": str(tenant_id) if tenant_id is not None else None}
 
 
-# Registro dos routers de módulo (fatias verticais) — descomentar conforme criados:
-# from src.modules.identidade.router import router as identidade_router
-# app.include_router(identidade_router, prefix=settings.api_v1_prefix)
+# Routers dos módulos (fatias verticais).
+from src.modules.identidade.router import router as identidade_router  # noqa: E402
+
+app.include_router(identidade_router, prefix=settings.api_v1_prefix)
