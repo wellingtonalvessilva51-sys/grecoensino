@@ -15,6 +15,10 @@ class Settings(BaseSettings):
     environment: str = "development"
     api_v1_prefix: str = "/v1"
 
+    # Domínio base usado para extrair o subdomínio do Host (multi-tenancy).
+    # Ex.: base_domain="localhost" → "escola-a.localhost" resolve tenant "escola-a".
+    base_domain: str = "localhost"
+
     # Banco (PostgreSQL via psycopg3)
     database_url: str = (
         "postgresql+psycopg://postgres:postgres@localhost:5432/gestao_educacional"

@@ -14,8 +14,8 @@ from src.core.config import settings
 from src.shared.models import Base
 
 # --- IMPORTS DE MODELS (para o autogenerate) --------------------------------
-# Importe aqui os models de cada módulo à medida que forem criados, ex.:
-# from src.modules.identidade import models as _identidade_models  # noqa: F401
+# Importe aqui os models de cada módulo à medida que forem criados.
+from src.modules.tenancy import models as _tenancy_models  # noqa: F401
 # ---------------------------------------------------------------------------
 
 config = context.config

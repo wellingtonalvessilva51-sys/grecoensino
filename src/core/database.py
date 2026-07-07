@@ -24,3 +24,8 @@ def get_db() -> Generator[Session, None, None]:
         yield db
     finally:
         db.close()
+
+
+# Importar o guard registra os listeners de isolamento por tenant na Session.
+# Fica no fim do módulo para não interferir na criação do engine/SessionLocal.
+from src.core import tenant_guard as _tenant_guard  # noqa: E402,F401
