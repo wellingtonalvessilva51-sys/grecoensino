@@ -12,6 +12,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from src.core import audit
 from src.core.exceptions import AppError
 from src.modules.academico.models import (
     AnoLetivo,
@@ -20,6 +21,7 @@ from src.modules.academico.models import (
     Disciplina,
     Frequencia,
     Matricula,
+    Nota,
     Serie,
     Turma,
     TurmaDisciplinaProfessor,
@@ -33,6 +35,7 @@ from src.modules.academico.schemas import (
     FrequenciaCreate,
     FrequenciaResumo,
     MatriculaCreate,
+    NotaCreate,
     SerieCreate,
     TurmaCreate,
 )
@@ -237,6 +240,105 @@ def listar_matriculas(db: Session, principal) -> list[Matricula]:
 def pode_ver_matricula(db: Session, principal, matricula: Matricula) -> bool:
     ids = pessoas.ids_visiveis(db, principal)
     return ids is None or matricula.aluno_id in ids
+
+
+# --- Notas (por período e disciplina) ---------------------------------------
+def professor_leciona_disciplina(
+    db: Session, principal, turma_id: uuid.UUID, disciplina_id: uuid.UUID
+) -> bool:
+    """True se o principal pode lançar nota: privilegiado ou professor daquela
+    disciplina naquela turma (ACL mais fina que a de frequência)."""
+    if PAPEIS_LANCA_PRIVILEGIADO.intersection(principal.papeis):
+        return True
+    minha = pessoas.pessoa_do_usuario(db, principal.usuario.id)
+    if minha is None:
+        return False
+    vinculo = db.scalars(
+        _ativos(TurmaDisciplinaProfessor).where(
+            TurmaDisciplinaProfessor.turma_id == turma_id,
+            TurmaDisciplinaProfessor.disciplina_id == disciplina_id,
+            TurmaDisciplinaProfessor.professor_id == minha.id,
+        )
+    ).first()
+    return vinculo is not None
+
+
+def registrar_nota(db: Session, principal, dados: NotaCreate) -> Nota:
+    matricula = _obter(db, Matricula, dados.matricula_id)
+    if matricula is None:
+        raise AppError("matricula_inexistente", "Matrícula não encontrada.", status_code=404)
+    if _obter(db, Disciplina, dados.disciplina_id) is None:
+        raise AppError("disciplina_inexistente", "Disciplina não encontrada.", status_code=404)
+
+    config = obter_ou_criar_config(db)
+    if dados.periodo > config.num_periodos:
+        raise AppError(
+            "periodo_invalido",
+            f"Período {dados.periodo} fora da configuração da escola (1..{config.num_periodos}).",
+            status_code=400,
+        )
+    if not professor_leciona_disciplina(db, principal, matricula.turma_id, dados.disciplina_id):
+        raise AppError(
+            "sem_permissao_disciplina",
+            "Professor não leciona esta disciplina nesta turma.",
+            status_code=403,
+        )
+
+    valor = float(dados.valor)
+    depois = {"disciplina_id": str(dados.disciplina_id), "periodo": dados.periodo, "valor": valor}
+
+    # Upsert por (matrícula, disciplina, período): relançar atualiza + audita.
+    existente = db.scalars(
+        _ativos(Nota).where(
+            Nota.matricula_id == dados.matricula_id,
+            Nota.disciplina_id == dados.disciplina_id,
+            Nota.periodo == dados.periodo,
+        )
+    ).first()
+    if existente is not None:
+        antes = {
+            "disciplina_id": str(existente.disciplina_id),
+            "periodo": existente.periodo,
+            "valor": float(existente.valor),
+        }
+        existente.valor = dados.valor
+        audit.registrar(
+            db,
+            acao="atualizar",
+            entidade="nota",
+            entidade_id=existente.id,
+            usuario_id=principal.usuario.id,
+            dados_antes=antes,
+            dados_depois=depois,
+        )
+        db.commit()
+        db.refresh(existente)
+        return existente
+
+    obj = Nota(
+        matricula_id=dados.matricula_id,
+        disciplina_id=dados.disciplina_id,
+        periodo=dados.periodo,
+        valor=dados.valor,
+    )
+    db.add(obj)
+    db.flush()  # id disponível para a auditoria
+    audit.registrar(
+        db,
+        acao="criar",
+        entidade="nota",
+        entidade_id=obj.id,
+        usuario_id=principal.usuario.id,
+        dados_depois=depois,
+    )
+    db.commit()
+    db.refresh(obj)
+    return obj
+
+
+def listar_notas(db: Session, matricula_id: uuid.UUID) -> list[Nota]:
+    stmt = _ativos(Nota).where(Nota.matricula_id == matricula_id)
+    return list(db.scalars(stmt.order_by(Nota.disciplina_id, Nota.periodo)).all())
 
 
 # --- Frequência (diária, por dia letivo) ------------------------------------

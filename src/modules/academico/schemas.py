@@ -134,6 +134,22 @@ class MatriculaRead(BaseModel):
     data_matricula: date
 
 
+class NotaCreate(BaseModel):
+    matricula_id: uuid.UUID
+    disciplina_id: uuid.UUID
+    periodo: int = Field(ge=1, le=12)  # limite fino validado contra a config
+    valor: Decimal = Field(ge=0, le=10)
+
+
+class NotaRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    matricula_id: uuid.UUID
+    disciplina_id: uuid.UUID
+    periodo: int
+    valor: Decimal
+
+
 class FrequenciaCreate(BaseModel):
     matricula_id: uuid.UUID
     data: date

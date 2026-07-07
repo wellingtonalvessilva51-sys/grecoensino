@@ -28,6 +28,8 @@ from src.modules.academico.schemas import (
     FrequenciaResumo,
     MatriculaCreate,
     MatriculaRead,
+    NotaCreate,
+    NotaRead,
     SerieCreate,
     SerieRead,
     TurmaCreate,
@@ -166,6 +168,16 @@ def obter_matricula(
     return matricula
 
 
+# --- Notas (por período e disciplina) ---------------------------------------
+@router.post("/notas", response_model=NotaRead, status_code=_CRIADO)
+def registrar_nota(
+    dados: NotaCreate,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(_LANCA),
+):
+    return service.registrar_nota(db, principal, dados)
+
+
 # --- Frequência (diária, por dia letivo) ------------------------------------
 def _matricula_visivel(db: Session, principal: Principal, matricula_id: uuid.UUID):
     """Carrega a matrícula respeitando a ACL de leitura, senão 404 (não vaza existência)."""
@@ -206,3 +218,13 @@ def resumo_frequencia(
 ):
     _matricula_visivel(db, principal, matricula_id)
     return service.resumo_frequencia(db, matricula_id)
+
+
+@router.get("/matriculas/{matricula_id}/notas", response_model=list[NotaRead])
+def listar_notas(
+    matricula_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(get_current_user),
+):
+    _matricula_visivel(db, principal, matricula_id)
+    return service.listar_notas(db, matricula_id)

@@ -140,6 +140,31 @@ class Matricula(DomainBase):
     data_matricula: Mapped[date] = mapped_column(nullable=False)
 
 
+class Nota(DomainBase):
+    """Nota do aluno numa disciplina e período (bimestre/trimestre).
+
+    Uma linha por (matrícula, disciplina, período) — relançar o período faz
+    upsert. Toda gravação registra auditoria (§9). A média anual é composta a
+    partir destas notas usando os pesos da config da escola (fatia de Boletim).
+    """
+
+    __tablename__ = "nota"
+    __table_args__ = (
+        UniqueConstraint(
+            "matricula_id", "disciplina_id", "periodo", name="uq_nota_matricula_disc_periodo"
+        ),
+    )
+
+    matricula_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(), ForeignKey("matricula.id"), nullable=False, index=True
+    )
+    disciplina_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(), ForeignKey("disciplina.id"), nullable=False, index=True
+    )
+    periodo: Mapped[int] = mapped_column(Integer, nullable=False)
+    valor: Mapped[float] = mapped_column(Numeric(4, 2), nullable=False)
+
+
 class Frequencia(DomainBase):
     """Frequência diária: presença do aluno por dia letivo (§ decisão da escola).
 
