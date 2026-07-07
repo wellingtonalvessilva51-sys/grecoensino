@@ -132,3 +132,32 @@ class MatriculaRead(BaseModel):
     turma_id: uuid.UUID
     situacao: str
     data_matricula: date
+
+
+class FrequenciaCreate(BaseModel):
+    matricula_id: uuid.UUID
+    data: date
+    presente: bool = True
+    justificada: bool = False  # só relevante quando presente=False
+
+
+class FrequenciaRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    matricula_id: uuid.UUID
+    data: date
+    presente: bool
+    justificada: bool
+
+
+class FrequenciaResumo(BaseModel):
+    """Consolidado de frequência da matrícula, comparado ao mínimo da escola."""
+
+    matricula_id: uuid.UUID
+    dias_letivos: int  # dias com registro
+    presencas: int
+    faltas: int
+    faltas_justificadas: int
+    percentual: Decimal  # presencas / dias_letivos * 100
+    frequencia_minima: Decimal  # da config da escola
+    suficiente: bool  # percentual >= frequencia_minima

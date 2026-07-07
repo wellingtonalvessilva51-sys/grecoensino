@@ -9,6 +9,8 @@ import uuid
 from datetime import date
 
 from sqlalchemy import (
+    Boolean,
+    Date,
     ForeignKey,
     Integer,
     Numeric,
@@ -136,3 +138,23 @@ class Matricula(DomainBase):
     )
     situacao: Mapped[str] = mapped_column(String(20), nullable=False, default="ativa")
     data_matricula: Mapped[date] = mapped_column(nullable=False)
+
+
+class Frequencia(DomainBase):
+    """Frequência diária: presença do aluno por dia letivo (§ decisão da escola).
+
+    Falta é contada por dia letivo — uma linha por (matrícula, data). O percentual
+    de frequência = dias presentes / dias letivos registrados.
+    """
+
+    __tablename__ = "frequencia"
+    __table_args__ = (
+        UniqueConstraint("matricula_id", "data", name="uq_frequencia_matricula_data"),
+    )
+
+    matricula_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(), ForeignKey("matricula.id"), nullable=False, index=True
+    )
+    data: Mapped[date] = mapped_column(Date, nullable=False)
+    presente: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    justificada: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

@@ -23,6 +23,9 @@ from src.modules.academico.schemas import (
     CursoRead,
     DisciplinaCreate,
     DisciplinaRead,
+    FrequenciaCreate,
+    FrequenciaRead,
+    FrequenciaResumo,
     MatriculaCreate,
     MatriculaRead,
     SerieCreate,
@@ -36,6 +39,9 @@ router = APIRouter(prefix="/academico", tags=["academico"])
 
 _ESCRITA = require_papel("secretaria", "admin_tenant")
 _CONFIG = require_papel("admin_tenant", "secretaria")
+# Lançamento de frequência: professor (restrito à sua turma pela ACL do service),
+# secretaria e admin_tenant.
+_LANCA = require_papel("professor", "secretaria", "admin_tenant")
 _CRIADO = status.HTTP_201_CREATED
 
 
@@ -158,3 +164,45 @@ def obter_matricula(
     if matricula is None or not service.pode_ver_matricula(db, principal, matricula):
         raise AppError("matricula_nao_encontrada", "Matrícula não encontrada.", status_code=404)
     return matricula
+
+
+# --- Frequência (diária, por dia letivo) ------------------------------------
+def _matricula_visivel(db: Session, principal: Principal, matricula_id: uuid.UUID):
+    """Carrega a matrícula respeitando a ACL de leitura, senão 404 (não vaza existência)."""
+    matricula = service.obter_matricula(db, matricula_id)
+    if matricula is None or not service.pode_ver_matricula(db, principal, matricula):
+        raise AppError("matricula_nao_encontrada", "Matrícula não encontrada.", status_code=404)
+    return matricula
+
+
+@router.post("/frequencias", response_model=FrequenciaRead, status_code=_CRIADO)
+def registrar_frequencia(
+    dados: FrequenciaCreate,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(_LANCA),
+):
+    return service.registrar_frequencia(db, principal, dados)
+
+
+@router.get(
+    "/matriculas/{matricula_id}/frequencias", response_model=list[FrequenciaRead]
+)
+def listar_frequencias(
+    matricula_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(get_current_user),
+):
+    _matricula_visivel(db, principal, matricula_id)
+    return service.listar_frequencias(db, matricula_id)
+
+
+@router.get(
+    "/matriculas/{matricula_id}/frequencia-resumo", response_model=FrequenciaResumo
+)
+def resumo_frequencia(
+    matricula_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(get_current_user),
+):
+    _matricula_visivel(db, principal, matricula_id)
+    return service.resumo_frequencia(db, matricula_id)

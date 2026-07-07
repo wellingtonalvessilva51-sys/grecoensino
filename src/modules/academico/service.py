@@ -7,8 +7,9 @@ importar models de outro módulo (§6). ACL de matrícula reusa
 
 import uuid
 from datetime import date
+from decimal import ROUND_HALF_UP, Decimal
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from src.core.exceptions import AppError
@@ -17,6 +18,7 @@ from src.modules.academico.models import (
     ConfigAcademica,
     Curso,
     Disciplina,
+    Frequencia,
     Matricula,
     Serie,
     Turma,
@@ -28,11 +30,16 @@ from src.modules.academico.schemas import (
     ConfigAcademicaUpdate,
     CursoCreate,
     DisciplinaCreate,
+    FrequenciaCreate,
+    FrequenciaResumo,
     MatriculaCreate,
     SerieCreate,
     TurmaCreate,
 )
 from src.modules.pessoas import service as pessoas
+
+# Papéis que lançam frequência/nota em qualquer turma do tenant (sem ACL de docência).
+PAPEIS_LANCA_PRIVILEGIADO = {"secretaria", "admin_tenant", "admin_plataforma"}
 
 # Defaults sensatos: toda escola nova já nasce com regra definida (§4).
 CONFIG_DEFAULTS = {
@@ -230,3 +237,107 @@ def listar_matriculas(db: Session, principal) -> list[Matricula]:
 def pode_ver_matricula(db: Session, principal, matricula: Matricula) -> bool:
     ids = pessoas.ids_visiveis(db, principal)
     return ids is None or matricula.aluno_id in ids
+
+
+# --- Frequência (diária, por dia letivo) ------------------------------------
+def professor_leciona_turma(db: Session, principal, turma_id: uuid.UUID) -> bool:
+    """True se o principal pode lançar na turma: privilegiado ou professor dela."""
+    if PAPEIS_LANCA_PRIVILEGIADO.intersection(principal.papeis):
+        return True
+    minha = pessoas.pessoa_do_usuario(db, principal.usuario.id)
+    if minha is None:
+        return False
+    vinculo = db.scalars(
+        _ativos(TurmaDisciplinaProfessor).where(
+            TurmaDisciplinaProfessor.turma_id == turma_id,
+            TurmaDisciplinaProfessor.professor_id == minha.id,
+        )
+    ).first()
+    return vinculo is not None
+
+
+def registrar_frequencia(db: Session, principal, dados: FrequenciaCreate) -> Frequencia:
+    matricula = _obter(db, Matricula, dados.matricula_id)
+    if matricula is None:
+        raise AppError("matricula_inexistente", "Matrícula não encontrada.", status_code=404)
+    if not professor_leciona_turma(db, principal, matricula.turma_id):
+        raise AppError(
+            "sem_permissao_turma",
+            "Professor não leciona nesta turma.",
+            status_code=403,
+        )
+
+    # Upsert por (matrícula, data): relançar o dia atualiza o registro.
+    existente = db.scalars(
+        _ativos(Frequencia).where(
+            Frequencia.matricula_id == dados.matricula_id,
+            Frequencia.data == dados.data,
+        )
+    ).first()
+    justificada = dados.justificada and not dados.presente
+    if existente is not None:
+        existente.presente = dados.presente
+        existente.justificada = justificada
+        db.commit()
+        db.refresh(existente)
+        return existente
+
+    obj = Frequencia(
+        matricula_id=dados.matricula_id,
+        data=dados.data,
+        presente=dados.presente,
+        justificada=justificada,
+    )
+    db.add(obj)
+    db.commit()
+    db.refresh(obj)
+    return obj
+
+
+def listar_frequencias(db: Session, matricula_id: uuid.UUID) -> list[Frequencia]:
+    stmt = _ativos(Frequencia).where(Frequencia.matricula_id == matricula_id)
+    return list(db.scalars(stmt.order_by(Frequencia.data)).all())
+
+
+def resumo_frequencia(db: Session, matricula_id: uuid.UUID) -> FrequenciaResumo:
+    """% de frequência = presenças / dias letivos registrados, vs mínimo da escola."""
+    base = _ativos(Frequencia).where(Frequencia.matricula_id == matricula_id)
+    dias_letivos = db.scalar(select(func.count()).select_from(base.subquery())) or 0
+    presencas = (
+        db.scalar(
+            select(func.count()).select_from(
+                base.where(Frequencia.presente.is_(True)).subquery()
+            )
+        )
+        or 0
+    )
+    justificadas = (
+        db.scalar(
+            select(func.count()).select_from(
+                base.where(Frequencia.justificada.is_(True)).subquery()
+            )
+        )
+        or 0
+    )
+    faltas = dias_letivos - presencas
+
+    if dias_letivos > 0:
+        percentual = (Decimal(presencas) / Decimal(dias_letivos) * Decimal(100)).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
+    else:
+        percentual = Decimal("0.00")
+
+    config = obter_ou_criar_config(db)
+    minima = Decimal(config.frequencia_minima_percentual)
+    return FrequenciaResumo(
+        matricula_id=matricula_id,
+        dias_letivos=dias_letivos,
+        presencas=presencas,
+        faltas=faltas,
+        faltas_justificadas=justificadas,
+        percentual=percentual,
+        frequencia_minima=minima,
+        # Sem dias letivos ainda, não há como afirmar suficiência.
+        suficiente=dias_letivos > 0 and percentual >= minima,
+    )
