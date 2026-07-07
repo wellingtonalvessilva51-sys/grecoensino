@@ -9,18 +9,41 @@ controlado) — nunca em log/stdout em texto claro.
 """
 
 import uuid
+from datetime import date
 from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from src.core import audit
 from src.core.exceptions import AppError
-from src.modules.financeiro.models import Titulo, TituloItem
-from src.modules.financeiro.schemas import TituloCreate, TituloItemRead, TituloRead
+from src.modules.financeiro.models import Pagamento, Titulo, TituloItem
+from src.modules.financeiro.schemas import (
+    PagamentoCreate,
+    TituloCreate,
+    TituloItemRead,
+    TituloRead,
+)
 from src.modules.pessoas import service as pessoas
 
 ZERO = Decimal("0.00")
+
+
+def _total_pago(db: Session, titulo_id: uuid.UUID) -> Decimal:
+    total = db.scalar(
+        select(func.coalesce(func.sum(Pagamento.valor), 0)).where(
+            Pagamento.titulo_id == titulo_id, Pagamento.deleted_at.is_(None)
+        )
+    )
+    return Decimal(total or 0)
+
+
+def _status_por_pagamento(valor_total: Decimal, total_pago: Decimal) -> str:
+    if total_pago <= ZERO:
+        return "pendente"
+    if total_pago < valor_total:
+        return "parcial"
+    return "liquidado"
 
 
 def _ativos(model):
@@ -37,8 +60,9 @@ def _itens(db: Session, titulo_id: uuid.UUID) -> list[TituloItem]:
 
 
 # --- Leitura / montagem -----------------------------------------------------
-def montar_read(db: Session, titulo: Titulo, total_pago: Decimal = ZERO) -> TituloRead:
+def montar_read(db: Session, titulo: Titulo) -> TituloRead:
     valor_total = Decimal(titulo.valor_total)
+    total_pago = _total_pago(db, titulo.id)
     return TituloRead(
         id=titulo.id,
         aluno_id=titulo.aluno_id,
@@ -135,3 +159,55 @@ def listar_titulos(
     if status is not None:
         stmt = stmt.where(Titulo.status == status)
     return list(db.scalars(stmt.order_by(Titulo.vencimento)).all())
+
+
+# --- Pagamento (parcial) ----------------------------------------------------
+def registrar_pagamento(
+    db: Session, principal, titulo_id: uuid.UUID, dados: PagamentoCreate
+) -> Pagamento:
+    titulo = _obter(db, Titulo, titulo_id)
+    if titulo is None:
+        raise AppError("titulo_nao_encontrado", "Título não encontrado.", status_code=404)
+
+    valor_total = Decimal(titulo.valor_total)
+    pago_atual = _total_pago(db, titulo_id)
+    saldo = valor_total - pago_atual
+    if dados.valor > saldo:
+        raise AppError(
+            "pagamento_excede_saldo",
+            "Valor do pagamento excede o saldo devedor do título.",
+            status_code=400,
+        )
+
+    pagamento = Pagamento(
+        titulo_id=titulo_id,
+        valor=dados.valor,
+        data_pagamento=dados.data_pagamento or date.today(),
+    )
+    db.add(pagamento)
+    db.flush()
+
+    novo_total = pago_atual + dados.valor
+    titulo.status = _status_por_pagamento(valor_total, novo_total)
+
+    audit.registrar(
+        db,
+        acao="pagar",
+        entidade="pagamento",
+        entidade_id=pagamento.id,
+        usuario_id=principal.usuario.id,
+        dados_depois={
+            "titulo_id": str(titulo_id),
+            "valor": float(dados.valor),
+            "total_pago": float(novo_total),
+            "status": titulo.status,
+        },
+    )
+    db.commit()
+    db.refresh(pagamento)
+    return pagamento
+
+
+def listar_pagamentos(db: Session, titulo_id: uuid.UUID) -> list[Pagamento]:
+    stmt = _ativos(Pagamento).where(Pagamento.titulo_id == titulo_id)
+    return list(db.scalars(stmt.order_by(Pagamento.data_pagamento)).all())

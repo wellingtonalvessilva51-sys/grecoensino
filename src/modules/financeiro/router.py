@@ -12,7 +12,13 @@ from sqlalchemy.orm import Session
 from src.core.database import get_db
 from src.core.exceptions import AppError
 from src.modules.financeiro import service
-from src.modules.financeiro.schemas import StatusTitulo, TituloCreate, TituloRead
+from src.modules.financeiro.schemas import (
+    PagamentoCreate,
+    PagamentoRead,
+    StatusTitulo,
+    TituloCreate,
+    TituloRead,
+)
 from src.shared.deps import Principal, get_current_user, require_papel
 
 router = APIRouter(prefix="/financeiro", tags=["financeiro"])
@@ -58,3 +64,26 @@ def obter_titulo(
 ):
     titulo = _titulo_visivel(db, principal, titulo_id)
     return service.montar_read(db, titulo)
+
+
+# --- Pagamento (parcial) ----------------------------------------------------
+@router.post(
+    "/titulos/{titulo_id}/pagamentos", response_model=PagamentoRead, status_code=_CRIADO
+)
+def registrar_pagamento(
+    titulo_id: uuid.UUID,
+    dados: PagamentoCreate,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(_ESCRITA),
+):
+    return service.registrar_pagamento(db, principal, titulo_id, dados)
+
+
+@router.get("/titulos/{titulo_id}/pagamentos", response_model=list[PagamentoRead])
+def listar_pagamentos(
+    titulo_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(get_current_user),
+):
+    _titulo_visivel(db, principal, titulo_id)
+    return service.listar_pagamentos(db, titulo_id)

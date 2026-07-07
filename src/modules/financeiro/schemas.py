@@ -51,3 +51,16 @@ class TituloRead(BaseModel):
     total_pago: Decimal
     saldo: Decimal
     itens: list[TituloItemRead]
+
+
+class PagamentoCreate(BaseModel):
+    valor: Decimal = Field(gt=0, max_digits=10, decimal_places=2)
+    data_pagamento: date | None = None  # default: hoje
+
+
+class PagamentoRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    titulo_id: uuid.UUID
+    valor: Decimal
+    data_pagamento: date
