@@ -1,0 +1,72 @@
+# Registro de Setup — gestão-educacional
+
+> Log do que foi feito até agora. Última atualização: **2026-07-07**.
+> Guia-fonte do projeto: `C:\Users\greco\Downloads\CLAUDE.md`.
+
+## Ambiente instalado
+
+| Ferramenta | Versão / Local |
+|-----------|----------------|
+| Python | 3.12 (user scope) — `C:\Users\greco\AppData\Local\Programs\Python\Python312` |
+| Git | `C:\Program Files\Git\cmd` — configurado com `wellingtonalves.silva51@gmail.com` |
+| venv do projeto | `C:\Users\greco\gestao-educacional\venv` |
+| Docker Desktop | instalado via winget (`C:\Program Files\Docker\Docker\resources\bin\docker.exe`), client 29.6.1 |
+| WSL2 | 2.7.10, kernel 6.18.33.2 — instalado 2026-07-07, **aguardando reboot** |
+
+Instalações feitas via `winget`: `Python.Python.3.12`, `Git.Git`, `Docker.DockerDesktop`.
+
+## Passos concluídos (commits no git)
+
+```
+7da51bf Passo 5: academico (estrutura curricular + matricula)
+d031fd0 Passo 4: pessoas (cadastro + vinculos + ACL de responsavel)
+8df8192 Passo 3: identidade (login/refresh/logout + RBAC + 403 estruturado)
+815e0f6 Passo 2: multi-tenancy (resolucao + reforco na camada de dados)
+e921032 Esqueleto inicial: app FastAPI + config + database + Alembic + healthcheck
+```
+
+**Passo 1 — Esqueleto:** app FastAPI (`src/main.py`), config (`src/core/config.py`),
+database/SQLAlchemy (`src/core/database.py`), Alembic (`alembic.ini`, `migrations/`),
+healthcheck, `requirements.txt`, `pyproject.toml`, `.gitignore`, `.env.example`, `README.md`.
+Módulos criados: identidade, pessoas, academico, financeiro, comunicacao, tenancy.
+
+**Passo 2 — Multi-tenancy:** `src/modules/tenancy/` (models/schemas/service),
+`src/core/tenancy.py`, `src/core/tenant_guard.py`, migration `0001_criar_tabela_tenant.py`,
+`scripts/seed_dev.py`, `tests/test_tenancy.py`.
+
+**Passo 3 — Identidade:** login/refresh/logout + RBAC + 403 estruturado.
+`src/modules/identidade/` (models/schemas/service/router), `src/core/security.py`,
+migration `0002_criar_tabelas_identidade.py`, `tests/test_identidade.py`.
+
+**Passo 4 — Pessoas:** cadastro + vínculos + ACL de responsável.
+`src/modules/pessoas/` (models/schemas/service/router),
+migration `0003_criar_tabelas_pessoas.py`, `tests/test_pessoas.py`.
+
+**Passo 5 — Acadêmico:** estrutura curricular + matrícula.
+`src/modules/academico/` (models/schemas/service/router),
+migration `0004_criar_tabelas_academico.py`, `tests/test_academico.py`.
+
+Testes (`pytest`) passando ao final de cada passo. Migrations 0001→0004 encadeadas.
+
+## Setup do Docker/WSL2 (histórico do bloqueio)
+
+1. Docker Desktop instalado, mas engine falhava: **"Virtualization support not detected"**.
+2. Diagnóstico: virtualização **já habilitada no firmware** (VT-x/EPT ok na CPU i5-3470).
+   Faltava o hypervisor do Windows → `bcdedit /set hypervisorlaunchtype auto` + **reboot** (feito).
+3. Erro mudou para **500 Internal Server Error** no engine — virtualização destravou.
+4. Causa do 500: **WSL2 não estava instalado** (wsl.exe era versão antiga inbox, sem kernel/distros).
+5. Rodado elevado (ExitCode 0): `wsl --install --no-distribution` → instalou WSL 2.7.10 + kernel 6.18.
+6. Recursos `VirtualMachinePlatform`/WSL ativados, mas exigem **REBOOT** (RebootPending=True,
+   erro `WSL_E_WSL_OPTIONAL_COMPONENT_REQUIRED`).
+
+## PRÓXIMOS PASSOS (retomar após reboot)
+
+1. **Reiniciar o Windows** (pendente).
+2. Abrir **Docker Desktop**, aguardar "Engine running".
+3. Verificar daemon: `docker version` (Server deve responder).
+4. Subir Postgres local via Docker (container).
+5. Criar `.env` a partir de `.env.example` com a `DATABASE_URL` do Postgres.
+6. Rodar migrations: `alembic upgrade head`.
+7. Rodar seed de desenvolvimento: `python scripts/seed_dev.py` (`seed_dev`).
+
+> Comandos usam o Python do venv: `.\venv\Scripts\python.exe -m alembic upgrade head` etc.
