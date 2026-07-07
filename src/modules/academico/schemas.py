@@ -177,3 +177,30 @@ class FrequenciaResumo(BaseModel):
     percentual: Decimal  # presencas / dias_letivos * 100
     frequencia_minima: Decimal  # da config da escola
     suficiente: bool  # percentual >= frequencia_minima
+
+
+# Situação por disciplina e final. Sem recuperação nesta fase (decisão do MVP).
+SituacaoDisciplina = Literal["cursando", "aprovado", "reprovado_nota"]
+SituacaoFinal = Literal[
+    "cursando", "aprovado", "reprovado_nota", "reprovado_frequencia"
+]
+
+
+class BoletimDisciplina(BaseModel):
+    disciplina_id: uuid.UUID
+    media: Decimal  # média anual ponderada pelos pesos da config
+    periodos_lancados: int
+    completa: bool  # todos os períodos da config têm nota
+    situacao: SituacaoDisciplina
+
+
+class BoletimRead(BaseModel):
+    """Boletim calculado on-the-fly (não editável direto) — junta as duas regras
+    configuráveis da escola: média/situação e frequência mínima (§4)."""
+
+    matricula_id: uuid.UUID
+    media_minima: Decimal
+    num_periodos: int
+    disciplinas: list[BoletimDisciplina]
+    frequencia: FrequenciaResumo
+    situacao_final: SituacaoFinal

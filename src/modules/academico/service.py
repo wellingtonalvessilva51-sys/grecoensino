@@ -29,6 +29,8 @@ from src.modules.academico.models import (
 from src.modules.academico.schemas import (
     AnoLetivoCreate,
     AtribuicaoCreate,
+    BoletimDisciplina,
+    BoletimRead,
     ConfigAcademicaUpdate,
     CursoCreate,
     DisciplinaCreate,
@@ -442,4 +444,77 @@ def resumo_frequencia(db: Session, matricula_id: uuid.UUID) -> FrequenciaResumo:
         frequencia_minima=minima,
         # Sem dias letivos ainda, não há como afirmar suficiência.
         suficiente=dias_letivos > 0 and percentual >= minima,
+    )
+
+
+# --- Boletim (consolida as duas regras configuráveis da escola) -------------
+def _quantizar(valor: Decimal) -> Decimal:
+    # Arredondamento padrão (2 casas, HALF_UP). TODO: confirmar regra com a escola-piloto.
+    return valor.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
+def _situacao_final(disciplinas: list[BoletimDisciplina], freq: FrequenciaResumo) -> str:
+    if not disciplinas or any(d.situacao == "cursando" for d in disciplinas):
+        return "cursando"
+    if freq.dias_letivos == 0:
+        return "cursando"  # sem frequência lançada não dá pra fechar
+    if not freq.suficiente:
+        return "reprovado_frequencia"
+    if all(d.situacao == "aprovado" for d in disciplinas):
+        return "aprovado"
+    return "reprovado_nota"
+
+
+def montar_boletim(db: Session, matricula_id: uuid.UUID) -> BoletimRead:
+    """Calcula (não persiste) média anual ponderada por disciplina e a situação
+    final, combinando média mínima E frequência mínima da config da escola."""
+    config = obter_ou_criar_config(db)
+    media_minima = Decimal(config.media_minima)
+    num_periodos = config.num_periodos
+    pesos = [Decimal(str(p)) for p in config.pesos_periodos]
+
+    por_disciplina: dict[uuid.UUID, list[Nota]] = {}
+    for nota in listar_notas(db, matricula_id):
+        por_disciplina.setdefault(nota.disciplina_id, []).append(nota)
+
+    disciplinas: list[BoletimDisciplina] = []
+    for disc_id, notas in por_disciplina.items():
+        soma_pond = Decimal(0)
+        soma_peso = Decimal(0)
+        periodos = set()
+        for nota in notas:
+            idx = nota.periodo - 1
+            peso = pesos[idx] if 0 <= idx < len(pesos) else Decimal(1)
+            soma_pond += Decimal(nota.valor) * peso
+            soma_peso += peso
+            periodos.add(nota.periodo)
+
+        media = _quantizar(soma_pond / soma_peso) if soma_peso > 0 else Decimal("0.00")
+        completa = len(periodos) == num_periodos
+        if not completa:
+            situacao = "cursando"
+        elif media >= media_minima:
+            situacao = "aprovado"
+        else:
+            situacao = "reprovado_nota"
+
+        disciplinas.append(
+            BoletimDisciplina(
+                disciplina_id=disc_id,
+                media=media,
+                periodos_lancados=len(periodos),
+                completa=completa,
+                situacao=situacao,
+            )
+        )
+
+    disciplinas.sort(key=lambda d: str(d.disciplina_id))  # saída estável
+    freq = resumo_frequencia(db, matricula_id)
+    return BoletimRead(
+        matricula_id=matricula_id,
+        media_minima=media_minima,
+        num_periodos=num_periodos,
+        disciplinas=disciplinas,
+        frequencia=freq,
+        situacao_final=_situacao_final(disciplinas, freq),
     )

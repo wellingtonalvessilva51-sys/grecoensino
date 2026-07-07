@@ -17,6 +17,7 @@ from src.modules.academico.schemas import (
     AnoLetivoRead,
     AtribuicaoCreate,
     AtribuicaoRead,
+    BoletimRead,
     ConfigAcademicaRead,
     ConfigAcademicaUpdate,
     CursoCreate,
@@ -228,3 +229,14 @@ def listar_notas(
 ):
     _matricula_visivel(db, principal, matricula_id)
     return service.listar_notas(db, matricula_id)
+
+
+# --- Boletim (consolidado, não editável direto) -----------------------------
+@router.get("/matriculas/{matricula_id}/boletim", response_model=BoletimRead)
+def obter_boletim(
+    matricula_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(get_current_user),
+):
+    _matricula_visivel(db, principal, matricula_id)
+    return service.montar_boletim(db, matricula_id)

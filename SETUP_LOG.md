@@ -81,8 +81,28 @@ volume `gestao_pgdata` persistem; dados do seed continuam lá).
 > Comandos usam o Python do venv: `.\venv\Scripts\python.exe -m alembic upgrade head`,
 > `.\venv\Scripts\python.exe -m scripts.seed_dev`, `.\venv\Scripts\python.exe -m pytest`.
 
+## Passo 6 — Notas e Frequência (núcleo de valor) — CONCLUÍDO
+
+Entregue em 5 commits. Regras acadêmicas **configuráveis por escola** (§4), nunca
+hardcoded. Migrations 0005→0008.
+
+1. **Config acadêmica por tenant** (`config_academica`): `media_minima`,
+   `num_periodos`, `pesos_periodos`, `frequencia_minima_percentual`. Defaults
+   6,00 / 75%. Rotas `GET/PUT /academico/config`.
+2. **Auditoria** (`auditoria_log`, append-only) em `core/audit.py` — §9.
+3. **Frequência diária** (`frequencia`, por dia letivo): lançamento com ACL de
+   docência; `frequencia-resumo` calcula % vs mínimo da escola.
+4. **Notas** (`nota`, por período/disciplina): ACL fina por disciplina; período
+   validado contra a config; grava auditoria em cada gravação.
+5. **Boletim** (calculado on-the-fly): média anual ponderada pelos pesos →
+   situação combinando média mínima E frequência mínima. `GET .../boletim`.
+
+Testes: **72 passed**. Escopo adiado (confirmado com o usuário): recuperação/média
+final e `boletim_fechamento` persistido. Arredondamento (2 casas HALF_UP) é default
+**TODO: confirmar regra com a escola-piloto**.
+
 ## PRÓXIMO PASSO DE PRODUTO
 
-Passo 6 do `CLAUDE.md`: **Notas e Frequência** (núcleo de valor) — fatia vertical
-model → migration → schema → service → router → teste. Regra de cálculo de média/situação
-**TODO: definir com a escola-piloto** antes de hardcodar.
+Passo 7 do `CLAUDE.md`: **Financeiro básico** — título consolidado
+(`titulo` 1→N `titulo_item`) + pagamento, pendentes/liquidados. Auditoria já pronta
+para reuso. Consolidação de título (§4) **TODO: definir com a escola-piloto**.
