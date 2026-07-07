@@ -1,0 +1,142 @@
+"""Rotas do Acadêmico: estrutura curricular, atribuições e matrícula.
+
+Escrita: RBAC secretaria/admin_tenant. Leitura da estrutura: autenticado.
+Leitura de matrícula: filtrada por ACL (responsável só vê o próprio dependente).
+"""
+
+import uuid
+
+from fastapi import APIRouter, Depends, status
+from sqlalchemy.orm import Session
+
+from src.core.database import get_db
+from src.core.exceptions import AppError
+from src.modules.academico import service
+from src.modules.academico.schemas import (
+    AnoLetivoCreate,
+    AnoLetivoRead,
+    AtribuicaoCreate,
+    AtribuicaoRead,
+    CursoCreate,
+    CursoRead,
+    DisciplinaCreate,
+    DisciplinaRead,
+    MatriculaCreate,
+    MatriculaRead,
+    SerieCreate,
+    SerieRead,
+    TurmaCreate,
+    TurmaRead,
+)
+from src.shared.deps import Principal, get_current_user, require_papel
+
+router = APIRouter(prefix="/academico", tags=["academico"])
+
+_ESCRITA = require_papel("secretaria", "admin_tenant")
+_CRIADO = status.HTTP_201_CREATED
+
+
+# --- Ano letivo -------------------------------------------------------------
+@router.post("/anos-letivos", response_model=AnoLetivoRead, status_code=_CRIADO)
+def criar_ano_letivo(dados: AnoLetivoCreate, db: Session = Depends(get_db), _: Principal = Depends(_ESCRITA)):
+    return service.criar_ano_letivo(db, dados)
+
+
+@router.get("/anos-letivos", response_model=list[AnoLetivoRead])
+def listar_anos_letivos(db: Session = Depends(get_db), _: Principal = Depends(get_current_user)):
+    return service.listar_anos_letivos(db)
+
+
+# --- Curso ------------------------------------------------------------------
+@router.post("/cursos", response_model=CursoRead, status_code=_CRIADO)
+def criar_curso(dados: CursoCreate, db: Session = Depends(get_db), _: Principal = Depends(_ESCRITA)):
+    return service.criar_curso(db, dados)
+
+
+@router.get("/cursos", response_model=list[CursoRead])
+def listar_cursos(db: Session = Depends(get_db), _: Principal = Depends(get_current_user)):
+    return service.listar_cursos(db)
+
+
+# --- Série ------------------------------------------------------------------
+@router.post("/series", response_model=SerieRead, status_code=_CRIADO)
+def criar_serie(dados: SerieCreate, db: Session = Depends(get_db), _: Principal = Depends(_ESCRITA)):
+    return service.criar_serie(db, dados)
+
+
+@router.get("/series", response_model=list[SerieRead])
+def listar_series(
+    curso_id: uuid.UUID | None = None,
+    db: Session = Depends(get_db),
+    _: Principal = Depends(get_current_user),
+):
+    return service.listar_series(db, curso_id)
+
+
+# --- Disciplina -------------------------------------------------------------
+@router.post("/disciplinas", response_model=DisciplinaRead, status_code=_CRIADO)
+def criar_disciplina(dados: DisciplinaCreate, db: Session = Depends(get_db), _: Principal = Depends(_ESCRITA)):
+    return service.criar_disciplina(db, dados)
+
+
+@router.get("/disciplinas", response_model=list[DisciplinaRead])
+def listar_disciplinas(db: Session = Depends(get_db), _: Principal = Depends(get_current_user)):
+    return service.listar_disciplinas(db)
+
+
+# --- Turma ------------------------------------------------------------------
+@router.post("/turmas", response_model=TurmaRead, status_code=_CRIADO)
+def criar_turma(dados: TurmaCreate, db: Session = Depends(get_db), _: Principal = Depends(_ESCRITA)):
+    return service.criar_turma(db, dados)
+
+
+@router.get("/turmas", response_model=list[TurmaRead])
+def listar_turmas(db: Session = Depends(get_db), _: Principal = Depends(get_current_user)):
+    return service.listar_turmas(db)
+
+
+@router.get("/turmas/{turma_id}", response_model=TurmaRead)
+def obter_turma(turma_id: uuid.UUID, db: Session = Depends(get_db), _: Principal = Depends(get_current_user)):
+    turma = service.obter_turma(db, turma_id)
+    if turma is None:
+        raise AppError("turma_inexistente", "Turma não encontrada.", status_code=404)
+    return turma
+
+
+# --- Atribuição disciplina/professor ----------------------------------------
+@router.post("/turmas/{turma_id}/disciplinas", response_model=AtribuicaoRead, status_code=_CRIADO)
+def atribuir_disciplina(
+    turma_id: uuid.UUID,
+    dados: AtribuicaoCreate,
+    db: Session = Depends(get_db),
+    _: Principal = Depends(_ESCRITA),
+):
+    return service.atribuir_disciplina(db, turma_id, dados)
+
+
+@router.get("/turmas/{turma_id}/disciplinas", response_model=list[AtribuicaoRead])
+def listar_atribuicoes(turma_id: uuid.UUID, db: Session = Depends(get_db), _: Principal = Depends(get_current_user)):
+    return service.listar_atribuicoes(db, turma_id)
+
+
+# --- Matrícula --------------------------------------------------------------
+@router.post("/matriculas", response_model=MatriculaRead, status_code=_CRIADO)
+def criar_matricula(dados: MatriculaCreate, db: Session = Depends(get_db), _: Principal = Depends(_ESCRITA)):
+    return service.criar_matricula(db, dados)
+
+
+@router.get("/matriculas", response_model=list[MatriculaRead])
+def listar_matriculas(db: Session = Depends(get_db), principal: Principal = Depends(get_current_user)):
+    return service.listar_matriculas(db, principal)
+
+
+@router.get("/matriculas/{matricula_id}", response_model=MatriculaRead)
+def obter_matricula(
+    matricula_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(get_current_user),
+):
+    matricula = service.obter_matricula(db, matricula_id)
+    if matricula is None or not service.pode_ver_matricula(db, principal, matricula):
+        raise AppError("matricula_nao_encontrada", "Matrícula não encontrada.", status_code=404)
+    return matricula

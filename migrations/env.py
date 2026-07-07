@@ -18,6 +18,7 @@ from src.shared.models import Base
 from src.modules.tenancy import models as _tenancy_models  # noqa: F401
 from src.modules.identidade import models as _identidade_models  # noqa: F401
 from src.modules.pessoas import models as _pessoas_models  # noqa: F401
+from src.modules.academico import models as _academico_models  # noqa: F401
 # ---------------------------------------------------------------------------
 
 config = context.config
