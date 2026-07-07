@@ -41,6 +41,7 @@ from src.modules.academico.schemas import (
     SerieCreate,
     TurmaCreate,
 )
+from src.modules.financeiro import service as financeiro
 from src.modules.pessoas import service as pessoas
 
 # Papéis que lançam frequência/nota em qualquer turma do tenant (sem ACL de docência).
@@ -196,7 +197,7 @@ def listar_atribuicoes(db: Session, turma_id: uuid.UUID) -> list[TurmaDisciplina
 
 
 # --- Matrícula --------------------------------------------------------------
-def criar_matricula(db: Session, dados: MatriculaCreate) -> Matricula:
+def criar_matricula(db: Session, dados: MatriculaCreate, principal=None) -> Matricula:
     if _obter(db, Turma, dados.turma_id) is None:
         raise AppError("turma_inexistente", "Turma não encontrada.", status_code=404)
     if pessoas.obter_pessoa(db, dados.aluno_id) is None:
@@ -222,6 +223,20 @@ def criar_matricula(db: Session, dados: MatriculaCreate) -> Matricula:
     db.add(obj)
     db.commit()
     db.refresh(obj)
+
+    # Efeito entre módulos por chamada de serviço síncrona (§6): se a matrícula
+    # informou cobrança inicial, gera o título de mensalidade. Sem principal
+    # (chamada interna sem usuário) não há como auditar, então não gera.
+    if dados.cobranca_inicial is not None and principal is not None:
+        financeiro.gerar_titulo_matricula(
+            db,
+            principal,
+            aluno_id=obj.aluno_id,
+            competencia=dados.cobranca_inicial.competencia,
+            vencimento=dados.cobranca_inicial.vencimento,
+            valor=dados.cobranca_inicial.valor,
+        )
+
     return obj
 
 

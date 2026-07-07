@@ -118,11 +118,21 @@ class AtribuicaoRead(BaseModel):
     professor_id: uuid.UUID
 
 
+class CobrancaInicial(BaseModel):
+    """Opcional: gera 1 título de mensalidade ao matricular (§6). Sem isto, a
+    matrícula não gera título — a secretaria cria manualmente depois."""
+
+    valor: Decimal = Field(gt=0, max_digits=10, decimal_places=2)
+    competencia: str = Field(pattern=r"^\d{4}-(0[1-9]|1[0-2])$")  # "YYYY-MM"
+    vencimento: date
+
+
 class MatriculaCreate(BaseModel):
     aluno_id: uuid.UUID
     turma_id: uuid.UUID
     situacao: SituacaoMatricula = "ativa"
     data_matricula: date | None = None
+    cobranca_inicial: CobrancaInicial | None = None
 
 
 class MatriculaRead(BaseModel):

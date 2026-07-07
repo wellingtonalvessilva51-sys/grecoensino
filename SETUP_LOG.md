@@ -101,8 +101,28 @@ Testes: **72 passed**. Escopo adiado (confirmado com o usuário): recuperação/
 final e `boletim_fechamento` persistido. Arredondamento (2 casas HALF_UP) é default
 **TODO: confirmar regra com a escola-piloto**.
 
+## Passo 7 — Financeiro básico — CONCLUÍDO
+
+Entregue em 3 commits. Migrations 0009→0010. Regras alinhadas com o usuário.
+
+1. **Título consolidado** (`titulo` 1→N `titulo_item`): valor_total somado no
+   servidor; único por (aluno, competência) = "um título por vencimento" (§4);
+   ACL: qualquer responsável vinculado vê; auditoria na criação.
+2. **Pagamento parcial** (`pagamento`): status derivado pendente/parcial/liquidado;
+   rejeita pagamento acima do saldo; auditoria; filtro por status.
+3. **Gancho automático** (§6): `MatriculaCreate.cobranca_inicial` opcional →
+   `financeiro.gerar_titulo_matricula` gera 1 título "MENSALIDADE" (idempotente por
+   competência). Sem cobrança informada, não gera nada.
+
+Decisões do usuário: criação manual + automática; pagamento parcial; ACL = qualquer
+responsável vinculado; impor 1 título por aluno+competência; auto-geração usa valor
+informado na matrícula (sem valor → não gera). Testes: **98 passed**.
+
+Fora do MVP: app nunca trafega/armazena dado de cartão (só registro do pagamento;
+gateway/PCI é fase futura). Recorrência de 12 mensalidades e valor por série ficaram
+para depois.
+
 ## PRÓXIMO PASSO DE PRODUTO
 
-Passo 7 do `CLAUDE.md`: **Financeiro básico** — título consolidado
-(`titulo` 1→N `titulo_item`) + pagamento, pendentes/liquidados. Auditoria já pronta
-para reuso. Consolidação de título (§4) **TODO: definir com a escola-piloto**.
+Passo 8 do `CLAUDE.md`: **Recados** (comunicação institucional simples) —
+`recado` + `recado_destinatario` (com `lido_em`). Último item do MVP.

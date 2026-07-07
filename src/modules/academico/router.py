@@ -148,8 +148,8 @@ def listar_atribuicoes(turma_id: uuid.UUID, db: Session = Depends(get_db), _: Pr
 
 # --- Matrícula --------------------------------------------------------------
 @router.post("/matriculas", response_model=MatriculaRead, status_code=_CRIADO)
-def criar_matricula(dados: MatriculaCreate, db: Session = Depends(get_db), _: Principal = Depends(_ESCRITA)):
-    return service.criar_matricula(db, dados)
+def criar_matricula(dados: MatriculaCreate, db: Session = Depends(get_db), principal: Principal = Depends(_ESCRITA)):
+    return service.criar_matricula(db, dados, principal)
 
 
 @router.get("/matriculas", response_model=list[MatriculaRead])

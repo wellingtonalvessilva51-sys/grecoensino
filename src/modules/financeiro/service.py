@@ -21,6 +21,7 @@ from src.modules.financeiro.models import Pagamento, Titulo, TituloItem
 from src.modules.financeiro.schemas import (
     PagamentoCreate,
     TituloCreate,
+    TituloItemCreate,
     TituloItemRead,
     TituloRead,
 )
@@ -211,3 +212,34 @@ def registrar_pagamento(
 def listar_pagamentos(db: Session, titulo_id: uuid.UUID) -> list[Pagamento]:
     stmt = _ativos(Pagamento).where(Pagamento.titulo_id == titulo_id)
     return list(db.scalars(stmt.order_by(Pagamento.data_pagamento)).all())
+
+
+# --- Geração automática (chamada por academico ao matricular, §6) ------------
+def gerar_titulo_matricula(
+    db: Session,
+    principal,
+    aluno_id: uuid.UUID,
+    competencia: str,
+    vencimento: date,
+    valor: Decimal,
+) -> Titulo | None:
+    """Gera 1 título de mensalidade ao matricular. Idempotente por competência:
+    se já houver título para (aluno, competência), não duplica (retorna None)."""
+    existente = db.scalars(
+        _ativos(Titulo).where(
+            Titulo.aluno_id == aluno_id, Titulo.competencia == competencia
+        )
+    ).first()
+    if existente is not None:
+        return None
+    return criar_titulo(
+        db,
+        principal,
+        TituloCreate(
+            aluno_id=aluno_id,
+            competencia=competencia,
+            vencimento=vencimento,
+            descricao="Mensalidade (gerada na matrícula)",
+            itens=[TituloItemCreate(descricao="MENSALIDADE", valor=valor)],
+        ),
+    )
