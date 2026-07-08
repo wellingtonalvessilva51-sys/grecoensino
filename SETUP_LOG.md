@@ -122,7 +122,29 @@ Fora do MVP: app nunca trafega/armazena dado de cartão (só registro do pagamen
 gateway/PCI é fase futura). Recorrência de 12 mensalidades e valor por série ficaram
 para depois.
 
-## PRÓXIMO PASSO DE PRODUTO
+## Passo 8 — Recados — CONCLUÍDO (fecha o MVP)
 
-Passo 8 do `CLAUDE.md`: **Recados** (comunicação institucional simples) —
-`recado` + `recado_destinatario` (com `lido_em`). Último item do MVP.
+1 commit. Migration 0011. Módulo `comunicacao`.
+
+- `recado` (autor_usuario_id, titulo, mensagem) + `recado_destinatario`
+  (recado_id, pessoa_id, `lido_em`), único por (recado, pessoa).
+- Envio: RBAC secretaria/professor/admin_tenant. Caixa de entrada por ACL
+  (própria pessoa + dependentes). Marcar como lido (grava `lido_em`).
+- `GET /recados` (inbox), `GET /recados/enviados` (autor),
+  `POST /recados/destinatarios/{id}/lido`. Sem auditoria (§9 só Notas/Financeiro).
+- 10 testes: RBAC, ACL de destinatário, duplicados, marcar lido, enviados.
+
+## MVP COMPLETO (Passos 1–8)
+
+Todos os passos do `CLAUDE.md` entregues. Suíte: **108 testes passando**.
+Migrations 0001→0011. Módulos: identidade, pessoas, academico (+ notas,
+frequência, boletim, config), financeiro (título consolidado + pagamento
+parcial), comunicacao (recados). Multi-tenancy reforçado no guard, RBAC + ACL,
+auditoria em Notas e Financeiro.
+
+### Possíveis próximos passos (pós-MVP, a alinhar)
+- Front web (React/Vue) consumindo a API — **TODO: definir** (§5).
+- Deploy no Railway (§5): variáveis de ambiente + Postgres gerenciado.
+- Regras a fechar com a escola-piloto: arredondamento de média, recuperação/
+  média final, recorrência de mensalidades (12x), valor por série.
+- Gateway de pagamento (tokenização; PCI no provedor).

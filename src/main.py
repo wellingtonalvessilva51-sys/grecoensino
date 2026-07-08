@@ -49,6 +49,7 @@ if settings.environment == "development":
 
 # Routers dos módulos (fatias verticais).
 from src.modules.academico.router import router as academico_router  # noqa: E402
+from src.modules.comunicacao.router import router as comunicacao_router  # noqa: E402
 from src.modules.financeiro.router import router as financeiro_router  # noqa: E402
 from src.modules.identidade.router import router as identidade_router  # noqa: E402
 from src.modules.pessoas.router import router as pessoas_router  # noqa: E402
@@ -57,3 +58,4 @@ app.include_router(identidade_router, prefix=settings.api_v1_prefix)
 app.include_router(pessoas_router, prefix=settings.api_v1_prefix)
 app.include_router(academico_router, prefix=settings.api_v1_prefix)
 app.include_router(financeiro_router, prefix=settings.api_v1_prefix)
+app.include_router(comunicacao_router, prefix=settings.api_v1_prefix)
