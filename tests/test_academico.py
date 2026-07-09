@@ -202,6 +202,14 @@ def test_matricula_aluno_inexistente_404(ambiente):
     assert r.json()["erro"]["codigo"] == "aluno_inexistente"
 
 
+def test_turma_read_tem_serie_e_ano(ambiente):
+    r = ambiente.client.get("/v1/academico/turmas", headers=_h(ambiente, ambiente.tok_sec))
+    assert r.status_code == 200
+    t = r.json()[0]
+    assert t["serie_nome"] == "1º ano"
+    assert t["ano"] == 2026
+
+
 def test_isolamento_tenant_cursos(ambiente):
     r = ambiente.client.get("/v1/academico/cursos", headers=_h(ambiente, ambiente.tok_sec))
     ids = {c["id"] for c in r.json()}

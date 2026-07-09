@@ -306,3 +306,13 @@ h3 {
   font-size: 0.95rem;
   margin: 0.75rem 0 0.4rem;
 }
+label.check {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--texto);
+  font-size: 0.9rem;
+}
+label.check input {
+  width: auto;
+}

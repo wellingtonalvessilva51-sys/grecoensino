@@ -99,7 +99,9 @@ class TurmaRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID
     serie_id: uuid.UUID
+    serie_nome: str
     ano_letivo_id: uuid.UUID
+    ano: int
     nome: str
 
 

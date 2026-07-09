@@ -114,12 +114,12 @@ def listar_disciplinas(db: Session = Depends(get_db), _: Principal = Depends(get
 # --- Turma ------------------------------------------------------------------
 @router.post("/turmas", response_model=TurmaRead, status_code=_CRIADO)
 def criar_turma(dados: TurmaCreate, db: Session = Depends(get_db), _: Principal = Depends(_ESCRITA)):
-    return service.criar_turma(db, dados)
+    return service.montar_turma_read(db, service.criar_turma(db, dados))
 
 
 @router.get("/turmas", response_model=list[TurmaRead])
 def listar_turmas(db: Session = Depends(get_db), _: Principal = Depends(get_current_user)):
-    return service.listar_turmas(db)
+    return [service.montar_turma_read(db, t) for t in service.listar_turmas(db)]
 
 
 @router.get("/turmas/{turma_id}", response_model=TurmaRead)
@@ -127,7 +127,7 @@ def obter_turma(turma_id: uuid.UUID, db: Session = Depends(get_db), _: Principal
     turma = service.obter_turma(db, turma_id)
     if turma is None:
         raise AppError("turma_inexistente", "Turma não encontrada.", status_code=404)
-    return turma
+    return service.montar_turma_read(db, turma)
 
 
 # --- Atribuição disciplina/professor ----------------------------------------

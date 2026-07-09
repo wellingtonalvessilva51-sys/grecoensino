@@ -41,6 +41,7 @@ from src.modules.academico.schemas import (
     NotaCreate,
     SerieCreate,
     TurmaCreate,
+    TurmaRead,
 )
 from src.modules.financeiro import service as financeiro
 from src.modules.pessoas import service as pessoas
@@ -162,6 +163,20 @@ def criar_turma(db: Session, dados: TurmaCreate) -> Turma:
 
 def obter_turma(db: Session, turma_id: uuid.UUID) -> Turma | None:
     return _obter(db, Turma, turma_id)
+
+
+def montar_turma_read(db: Session, turma: Turma) -> TurmaRead:
+    """Enriquece a turma com o nome da série e o ano letivo (legibilidade no front)."""
+    serie = _obter(db, Serie, turma.serie_id)
+    ano = _obter(db, AnoLetivo, turma.ano_letivo_id)
+    return TurmaRead(
+        id=turma.id,
+        serie_id=turma.serie_id,
+        serie_nome=serie.nome if serie is not None else "",
+        ano_letivo_id=turma.ano_letivo_id,
+        ano=ano.ano if ano is not None else 0,
+        nome=turma.nome,
+    )
 
 
 def listar_turmas(db: Session) -> list[Turma]:
