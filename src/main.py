@@ -5,6 +5,7 @@ são registrados aqui conforme as fatias verticais forem implementadas.
 """
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from src.core.config import settings
 from src.core.exceptions import register_exception_handlers
@@ -21,6 +22,17 @@ register_exception_handlers(app)
 
 # Resolve o tenant da request (subdomínio / header de dev) e o injeta no contexto.
 app.add_middleware(TenantResolverMiddleware)
+
+# CORS por último → camada mais externa: trata o preflight (OPTIONS) do front
+# antes da resolução de tenant. Origens vêm da config (Vite dev por padrão).
+# X-Tenant-ID é liberado por allow_headers="*" (o front envia esse header em dev).
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins_list,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/health", tags=["infra"])

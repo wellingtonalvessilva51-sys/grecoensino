@@ -19,6 +19,13 @@ class Settings(BaseSettings):
     # Ex.: base_domain="localhost" → "escola-a.localhost" resolve tenant "escola-a".
     base_domain: str = "localhost"
 
+    # CORS: origens do front permitidas (separadas por vírgula). Default = Vite dev.
+    cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
     # Banco (PostgreSQL via psycopg3)
     database_url: str = (
         "postgresql+psycopg://postgres:postgres@localhost:5432/gestao_educacional"

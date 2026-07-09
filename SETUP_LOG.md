@@ -143,8 +143,31 @@ parcial), comunicacao (recados). Multi-tenancy reforçado no guard, RBAC + ACL,
 auditoria em Notas e Financeiro.
 
 ### Possíveis próximos passos (pós-MVP, a alinhar)
-- Front web (React/Vue) consumindo a API — **TODO: definir** (§5).
 - Deploy no Railway (§5): variáveis de ambiente + Postgres gerenciado.
 - Regras a fechar com a escola-piloto: arredondamento de média, recuperação/
   média final, recorrência de mensalidades (12x), valor por série.
 - Gateway de pagamento (tokenização; PCI no provedor).
+
+## Front web — EM ANDAMENTO (React + Vite + TS)
+
+Framework: **React** (decidido com o usuário). 1ª fatia: **login + Portal do
+Responsável**. Monorepo: pasta **`web/`**.
+
+**Adiantado sem depender do Node (2026-07-09):**
+- **CORS no backend**: `CORSMiddleware` em `src/main.py` (camada externa, trata
+  preflight antes do tenant). Origens em `settings.cors_origins` (`CORS_ORIGINS`,
+  default Vite dev). Validado por preflight (200, headers corretos). Suíte segue
+  108 testes.
+- **Scaffold `web/`**: Vite + React + TS. Cliente HTTP com refresh automático do
+  JWT (`lib/api.ts`), contexto de auth (`lib/auth.tsx`), TanStack Query, guarda de
+  rota, páginas Login e PortalResponsavel (consome matrículas, boletim,
+  frequência-resumo, títulos, recados). Ainda **não rodado** (falta Node).
+
+**BLOQUEIO:** Node.js não instalado. AÇÃO DO USUÁRIO: rodar via `!` no Claude Code
+`! winget install OpenJS.NodeJS.LTS --accept-source-agreements --accept-package-agreements`
+e aceitar o UAC (ou nodejs.org / nvm-windows). Depois: `cd web; npm install; npm run dev`.
+
+**Ao retomar (depois do Node):** `npm install`; preencher `web/.env`
+(`VITE_TENANT_ID` = UUID da escola-a do seed); criar um usuário **responsável**
+demo com pessoa + vínculo + dados (estender `scripts/seed_dev.py`) para exercitar
+o portal ponta a ponta; `npm run dev` e validar login → portal contra a API real.
