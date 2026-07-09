@@ -63,9 +63,25 @@ export interface TituloItem {
   valor: string;
 }
 
+export interface Pessoa {
+  id: string;
+  nome: string;
+  cpf: string | null;
+  data_nascimento: string | null;
+  usuario_id: string | null;
+}
+
+export interface Pagamento {
+  id: string;
+  titulo_id: string;
+  valor: string;
+  data_pagamento: string;
+}
+
 export interface Titulo {
   id: string;
   aluno_id: string;
+  aluno_nome: string;
   competencia: string;
   vencimento: string;
   descricao: string | null;

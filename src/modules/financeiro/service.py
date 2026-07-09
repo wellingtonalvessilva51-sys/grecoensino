@@ -64,9 +64,11 @@ def _itens(db: Session, titulo_id: uuid.UUID) -> list[TituloItem]:
 def montar_read(db: Session, titulo: Titulo) -> TituloRead:
     valor_total = Decimal(titulo.valor_total)
     total_pago = _total_pago(db, titulo.id)
+    aluno = pessoas.obter_pessoa(db, titulo.aluno_id)
     return TituloRead(
         id=titulo.id,
         aluno_id=titulo.aluno_id,
+        aluno_nome=aluno.nome if aluno is not None else "",
         competencia=titulo.competencia,
         vencimento=titulo.vencimento,
         descricao=titulo.descricao,

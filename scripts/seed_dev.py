@@ -44,6 +44,19 @@ DEMOS = [
 ]
 SENHA_ADMIN = "admin12345"
 SENHA_RESP = "resp12345"
+SENHA_SEC = "sec12345"
+
+
+def _garantir_secretaria(db) -> None:
+    email = "secretaria@escola-a.dev"
+    if identidade.buscar_usuario_por_email(db, email) is not None:
+        print(f"  secretaria existe: {email}")
+        return
+    identidade.criar_usuario(
+        db,
+        UsuarioCreate(nome="Sônia (Secretaria)", email=email, senha=SENHA_SEC, papeis=["secretaria"]),
+    )
+    print(f"  secretaria criada: {email} / {SENHA_SEC}")
 
 
 def _garantir_admin(db, subdominio: str):
@@ -167,6 +180,7 @@ def main() -> None:
                 academico.obter_ou_criar_config(db)
                 admin = _garantir_admin(db, dados.subdominio)
                 if dados.subdominio == "escola-a":
+                    _garantir_secretaria(db)
                     _seed_portal(db, admin)
             finally:
                 reset_current_tenant(token)

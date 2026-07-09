@@ -108,6 +108,7 @@ def test_secretaria_cria_titulo_consolidado(ambiente):
     assert r.status_code == 201
     body = r.json()
     assert float(body["valor_total"]) == 700.50  # 500 + 80.50 + 120
+    assert body["aluno_nome"] == "Aluno Dependente"  # nome, não só UUID
     assert body["status"] == "pendente"
     assert float(body["total_pago"]) == 0.0
     assert float(body["saldo"]) == 700.50

@@ -43,6 +43,7 @@ class TituloRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID
     aluno_id: uuid.UUID
+    aluno_nome: str
     competencia: str
     vencimento: date
     descricao: str | None
