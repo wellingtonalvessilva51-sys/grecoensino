@@ -139,6 +139,7 @@ class MatriculaRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID
     aluno_id: uuid.UUID
+    aluno_nome: str
     turma_id: uuid.UUID
     situacao: str
     data_matricula: date
@@ -198,6 +199,7 @@ SituacaoFinal = Literal[
 
 class BoletimDisciplina(BaseModel):
     disciplina_id: uuid.UUID
+    disciplina_nome: str
     media: Decimal  # média anual ponderada pelos pesos da config
     periodos_lancados: int
     completa: bool  # todos os períodos da config têm nota
@@ -209,6 +211,7 @@ class BoletimRead(BaseModel):
     configuráveis da escola: média/situação e frequência mínima (§4)."""
 
     matricula_id: uuid.UUID
+    aluno_nome: str
     media_minima: Decimal
     num_periodos: int
     disciplinas: list[BoletimDisciplina]

@@ -127,6 +127,7 @@ def test_matricula_nova_aluno(ambiente):
     )
     assert r.status_code == 201
     assert r.json()["situacao"] == "ativa"
+    assert r.json()["aluno_nome"] == "Aluno Outro"  # nome, não só UUID
 
 
 def test_matricula_duplicada_409(ambiente):

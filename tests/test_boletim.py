@@ -161,6 +161,9 @@ def test_aprovado(ambiente):
     assert float(b["disciplinas"][0]["media"]) == 7.0
     assert b["disciplinas"][0]["situacao"] == "aprovado"
     assert b["situacao_final"] == "aprovado"
+    # nomes (em vez de só UUIDs)
+    assert b["aluno_nome"] == "Aluno Dependente"
+    assert b["disciplinas"][0]["disciplina_nome"] == "Matemática"
 
 
 def test_reprovado_por_nota(ambiente):

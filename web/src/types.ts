@@ -17,6 +17,7 @@ export interface Usuario {
 export interface Matricula {
   id: string;
   aluno_id: string;
+  aluno_nome: string;
   turma_id: string;
   situacao: string;
   data_matricula: string;
@@ -24,6 +25,7 @@ export interface Matricula {
 
 export interface BoletimDisciplina {
   disciplina_id: string;
+  disciplina_nome: string;
   media: string;
   periodos_lancados: number;
   completa: boolean;
@@ -43,6 +45,7 @@ export interface FrequenciaResumo {
 
 export interface Boletim {
   matricula_id: string;
+  aluno_nome: string;
   media_minima: string;
   num_periodos: number;
   disciplinas: BoletimDisciplina[];

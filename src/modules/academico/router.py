@@ -149,12 +149,13 @@ def listar_atribuicoes(turma_id: uuid.UUID, db: Session = Depends(get_db), _: Pr
 # --- Matrícula --------------------------------------------------------------
 @router.post("/matriculas", response_model=MatriculaRead, status_code=_CRIADO)
 def criar_matricula(dados: MatriculaCreate, db: Session = Depends(get_db), principal: Principal = Depends(_ESCRITA)):
-    return service.criar_matricula(db, dados, principal)
+    matricula = service.criar_matricula(db, dados, principal)
+    return service.montar_matricula_read(db, matricula)
 
 
 @router.get("/matriculas", response_model=list[MatriculaRead])
 def listar_matriculas(db: Session = Depends(get_db), principal: Principal = Depends(get_current_user)):
-    return service.listar_matriculas(db, principal)
+    return [service.montar_matricula_read(db, m) for m in service.listar_matriculas(db, principal)]
 
 
 @router.get("/matriculas/{matricula_id}", response_model=MatriculaRead)
@@ -166,7 +167,7 @@ def obter_matricula(
     matricula = service.obter_matricula(db, matricula_id)
     if matricula is None or not service.pode_ver_matricula(db, principal, matricula):
         raise AppError("matricula_nao_encontrada", "Matrícula não encontrada.", status_code=404)
-    return matricula
+    return service.montar_matricula_read(db, matricula)
 
 
 # --- Notas (por período e disciplina) ---------------------------------------

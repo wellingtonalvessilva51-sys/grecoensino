@@ -37,6 +37,7 @@ from src.modules.academico.schemas import (
     FrequenciaCreate,
     FrequenciaResumo,
     MatriculaCreate,
+    MatriculaRead,
     NotaCreate,
     SerieCreate,
     TurmaCreate,
@@ -242,6 +243,19 @@ def criar_matricula(db: Session, dados: MatriculaCreate, principal=None) -> Matr
 
 def obter_matricula(db: Session, matricula_id: uuid.UUID) -> Matricula | None:
     return _obter(db, Matricula, matricula_id)
+
+
+def montar_matricula_read(db: Session, matricula: Matricula) -> MatriculaRead:
+    """Enriquece a matrícula com o nome do aluno (evita expor só UUIDs no front)."""
+    aluno = pessoas.obter_pessoa(db, matricula.aluno_id)
+    return MatriculaRead(
+        id=matricula.id,
+        aluno_id=matricula.aluno_id,
+        aluno_nome=aluno.nome if aluno is not None else "",
+        turma_id=matricula.turma_id,
+        situacao=matricula.situacao,
+        data_matricula=matricula.data_matricula,
+    )
 
 
 def listar_matriculas(db: Session, principal) -> list[Matricula]:
@@ -488,6 +502,11 @@ def montar_boletim(db: Session, matricula_id: uuid.UUID) -> BoletimRead:
     num_periodos = config.num_periodos
     pesos = [Decimal(str(p)) for p in config.pesos_periodos]
 
+    matricula = _obter(db, Matricula, matricula_id)
+    aluno = (
+        pessoas.obter_pessoa(db, matricula.aluno_id) if matricula is not None else None
+    )
+
     por_disciplina: dict[uuid.UUID, list[Nota]] = {}
     for nota in listar_notas(db, matricula_id):
         por_disciplina.setdefault(nota.disciplina_id, []).append(nota)
@@ -513,9 +532,11 @@ def montar_boletim(db: Session, matricula_id: uuid.UUID) -> BoletimRead:
         else:
             situacao = "reprovado_nota"
 
+        disc = _obter(db, Disciplina, disc_id)
         disciplinas.append(
             BoletimDisciplina(
                 disciplina_id=disc_id,
+                disciplina_nome=disc.nome if disc is not None else "",
                 media=media,
                 periodos_lancados=len(periodos),
                 completa=completa,
@@ -523,10 +544,11 @@ def montar_boletim(db: Session, matricula_id: uuid.UUID) -> BoletimRead:
             )
         )
 
-    disciplinas.sort(key=lambda d: str(d.disciplina_id))  # saída estável
+    disciplinas.sort(key=lambda d: d.disciplina_nome)  # saída estável por nome
     freq = resumo_frequencia(db, matricula_id)
     return BoletimRead(
         matricula_id=matricula_id,
+        aluno_nome=aluno.nome if aluno is not None else "",
         media_minima=media_minima,
         num_periodos=num_periodos,
         disciplinas=disciplinas,

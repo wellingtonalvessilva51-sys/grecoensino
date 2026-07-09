@@ -61,7 +61,7 @@ export function PortalResponsavel() {
             >
               {lista.map((m) => (
                 <option key={m.id} value={m.id}>
-                  {m.aluno_id.slice(0, 8)} · {m.situacao}
+                  {m.aluno_nome} · {m.situacao}
                 </option>
               ))}
             </select>
@@ -91,7 +91,8 @@ function BoletimCard({ matriculaId }: { matriculaId: string }) {
       {data && (
         <>
           <p>
-            Situação final: <SituacaoTag valor={data.situacao_final} />
+            {data.aluno_nome} · Situação final:{" "}
+            <SituacaoTag valor={data.situacao_final} />
           </p>
           <table>
             <thead>
@@ -104,7 +105,7 @@ function BoletimCard({ matriculaId }: { matriculaId: string }) {
             <tbody>
               {data.disciplinas.map((d) => (
                 <tr key={d.disciplina_id}>
-                  <td>{d.disciplina_id.slice(0, 8)}</td>
+                  <td>{d.disciplina_nome}</td>
                   <td>{d.media}</td>
                   <td>
                     <SituacaoTag valor={d.situacao} />
