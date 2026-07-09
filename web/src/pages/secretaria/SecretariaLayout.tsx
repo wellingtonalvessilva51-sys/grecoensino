@@ -10,6 +10,7 @@ export function SecretariaLayout() {
           <strong>Gestão Educacional</strong>
           <span className="sub"> · Secretaria</span>
           <nav className="nav">
+            <NavLink to="/secretaria/cadastros">Cadastros</NavLink>
             <NavLink to="/secretaria/alunos">Alunos & Matrículas</NavLink>
             <NavLink to="/secretaria/financeiro">Financeiro</NavLink>
           </nav>

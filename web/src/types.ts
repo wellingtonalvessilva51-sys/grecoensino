@@ -23,6 +23,32 @@ export interface Matricula {
   data_matricula: string;
 }
 
+export interface AnoLetivo {
+  id: string;
+  ano: number;
+  descricao: string | null;
+  situacao: string;
+}
+
+export interface Curso {
+  id: string;
+  nome: string;
+  codigo: string | null;
+}
+
+export interface Serie {
+  id: string;
+  curso_id: string;
+  nome: string;
+  ordem: number | null;
+}
+
+export interface Disciplina {
+  id: string;
+  nome: string;
+  codigo: string | null;
+}
+
 export interface Turma {
   id: string;
   serie_id: string;
@@ -30,6 +56,13 @@ export interface Turma {
   ano_letivo_id: string;
   ano: number;
   nome: string;
+}
+
+export interface Atribuicao {
+  id: string;
+  turma_id: string;
+  disciplina_id: string;
+  professor_id: string;
 }
 
 export interface BoletimDisciplina {
