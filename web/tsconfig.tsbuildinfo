@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/types.ts","./src/vite-env.d.ts","./src/features/responsavel/api.ts","./src/lib/api.ts","./src/lib/auth.tsx","./src/lib/config.ts","./src/lib/queryclient.ts","./src/lib/tokens.ts","./src/pages/loginpage.tsx","./src/pages/portalresponsavel.tsx","./src/routes/protectedroute.tsx"],"version":"5.9.3"}
