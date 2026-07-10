@@ -158,6 +158,15 @@ export interface Titulo {
   itens: TituloItem[];
 }
 
+export interface RecadoEnviado {
+  id: string;
+  titulo: string;
+  mensagem: string;
+  autor_usuario_id: string;
+  created_at: string;
+  total_destinatarios: number;
+}
+
 export interface RecadoInboxItem {
   destinatario_id: string;
   recado_id: string;

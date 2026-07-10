@@ -333,3 +333,18 @@ label.check input {
   color: var(--azul);
   border-bottom-color: var(--azul);
 }
+.checklist {
+  max-height: 200px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+textarea {
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  font: inherit;
+  color: var(--texto);
+  resize: vertical;
+}

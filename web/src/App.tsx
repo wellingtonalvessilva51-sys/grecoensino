@@ -7,6 +7,7 @@ import { FinanceiroPage } from "./pages/secretaria/FinanceiroPage";
 import { AlunosMatriculasPage } from "./pages/secretaria/AlunosMatriculasPage";
 import { CadastrosPage } from "./pages/secretaria/CadastrosPage";
 import { LancamentoPage } from "./pages/secretaria/LancamentoPage";
+import { RecadosPage } from "./pages/secretaria/RecadosPage";
 import { ProtectedRoute } from "./routes/ProtectedRoute";
 import { useAuth } from "./lib/auth";
 import { ehSecretaria, rotaInicial } from "./lib/roles";
@@ -55,6 +56,7 @@ export function App() {
         <Route path="financeiro" element={<FinanceiroPage />} />
         <Route path="alunos" element={<AlunosMatriculasPage />} />
         <Route path="lancamento" element={<LancamentoPage />} />
+        <Route path="recados" element={<RecadosPage />} />
         <Route path="cadastros" element={<CadastrosPage />} />
       </Route>
 
