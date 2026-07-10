@@ -12,6 +12,7 @@ export function SecretariaLayout() {
           <nav className="nav">
             <NavLink to="/secretaria/cadastros">Cadastros</NavLink>
             <NavLink to="/secretaria/alunos">Alunos & Matrículas</NavLink>
+            <NavLink to="/secretaria/lancamento">Notas & Frequência</NavLink>
             <NavLink to="/secretaria/financeiro">Financeiro</NavLink>
           </nav>
         </div>

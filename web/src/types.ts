@@ -65,6 +65,30 @@ export interface Atribuicao {
   professor_id: string;
 }
 
+export interface Nota {
+  id: string;
+  matricula_id: string;
+  disciplina_id: string;
+  periodo: number;
+  valor: string;
+}
+
+export interface Frequencia {
+  id: string;
+  matricula_id: string;
+  data: string;
+  presente: boolean;
+  justificada: boolean;
+}
+
+export interface ConfigAcademica {
+  id: string;
+  media_minima: string;
+  num_periodos: number;
+  pesos_periodos: string[];
+  frequencia_minima_percentual: string;
+}
+
 export interface BoletimDisciplina {
   disciplina_id: string;
   disciplina_nome: string;
