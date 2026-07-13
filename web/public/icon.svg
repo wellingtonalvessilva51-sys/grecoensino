@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" fill="#1f6feb"/>
+  <!-- Capelo (mortarboard), centralizado na área segura -->
+  <g fill="#ffffff">
+    <!-- Prancha (losango em perspectiva) -->
+    <path d="M256 168 L400 232 L256 296 L112 232 Z"/>
+    <!-- Base/cabeça sob a prancha -->
+    <path d="M176 254 L176 312 Q256 356 336 312 L336 254 L256 290 Z"/>
+    <!-- Borla (cordão + ponta) -->
+    <path d="M400 232 L400 320" stroke="#ffffff" stroke-width="10" fill="none" stroke-linecap="round"/>
+    <circle cx="400" cy="330" r="16"/>
+  </g>
+</svg>

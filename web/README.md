@@ -54,3 +54,16 @@ src/
 - `npm run build` — typecheck + build de produção.
 - `npm run typecheck` — só checagem de tipos.
 - `npm run test` — testes (Vitest + Testing Library). `npm run test:watch` para watch.
+
+## PWA (instalável)
+
+O app é uma PWA (manifest + service worker via `vite-plugin-pwa`). O service
+worker roda apenas no build (não no `dev`). Para testar a instalação:
+
+```bash
+npm run build
+npm run preview        # abra a URL; o navegador oferece "Instalar"
+```
+
+Ícone em `public/icon.svg` (maskable). Offline: o app shell é pré-cacheado
+(dados da API não são cacheados, para não servir conteúdo autenticado obsoleto).
