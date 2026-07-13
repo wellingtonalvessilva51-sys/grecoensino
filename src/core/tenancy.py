@@ -92,8 +92,8 @@ class TenantResolverMiddleware:
                 reset_current_tenant(token)
 
     def _resolver(self, headers: dict[str, str]) -> uuid.UUID | None:
-        # 1. Atalho de desenvolvimento.
-        if settings.environment == "development":
+        # 1. Atalho via header X-Tenant-ID (dev, ou prod demo com flag).
+        if settings.tenant_header_enabled:
             bruto = headers.get("x-tenant-id")
             if bruto:
                 try:

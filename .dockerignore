@@ -1,0 +1,13 @@
+.git
+.gitignore
+venv
+__pycache__
+**/__pycache__
+*.pyc
+.pytest_cache
+.env
+web/node_modules
+web/dist
+web/.vite
+tests
+SETUP_LOG.md

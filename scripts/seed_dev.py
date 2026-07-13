@@ -6,6 +6,8 @@ Uso:
     venv\\Scripts\\python.exe -m scripts.seed_dev
 """
 
+import os
+import uuid
 from datetime import date, timedelta
 
 from sqlalchemy import select
@@ -38,6 +40,7 @@ from src.modules.pessoas import service as pessoas
 from src.modules.pessoas.models import Pessoa
 from src.modules.pessoas.schemas import PessoaCreate, VinculoCreate
 from src.modules.tenancy import service as tenancy
+from src.modules.tenancy.models import Tenant
 from src.modules.tenancy.schemas import TenantCreate
 from src.shared.deps import Principal
 
@@ -199,10 +202,24 @@ def main() -> None:
     with SessionLocal() as db:
         identidade.garantir_papeis_catalogo(db)
 
+        demo_tenant_id = os.environ.get("DEMO_TENANT_ID")
+
         for dados in DEMOS:
             tenant = tenancy.buscar_por_subdominio(db, dados.subdominio)
             if tenant is None:
-                tenant = tenancy.criar_tenant(db, dados)
+                # Deploy demo: escola-a nasce com id estável (mesmo injetado no
+                # front), para o header X-Tenant-ID casar sem rebuild.
+                if dados.subdominio == "escola-a" and demo_tenant_id:
+                    tenant = Tenant(
+                        id=uuid.UUID(demo_tenant_id),
+                        nome=dados.nome,
+                        subdominio=dados.subdominio,
+                    )
+                    db.add(tenant)
+                    db.commit()
+                    db.refresh(tenant)
+                else:
+                    tenant = tenancy.criar_tenant(db, dados)
                 print(f"tenant criado:  {tenant.subdominio} ({tenant.id})")
             else:
                 print(f"tenant existe:  {tenant.subdominio} ({tenant.id})")

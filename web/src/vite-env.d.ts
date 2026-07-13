@@ -8,3 +8,11 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+// Config de runtime injetada pelo backend (deploy single-service).
+interface Window {
+  __ENV__?: {
+    tenantId?: string;
+    apiBaseUrl?: string;
+  };
+}
