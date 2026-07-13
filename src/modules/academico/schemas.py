@@ -120,6 +120,17 @@ class AtribuicaoRead(BaseModel):
     professor_id: uuid.UUID
 
 
+class ProfessorAtribuicaoRead(BaseModel):
+    """Uma turma+disciplina que o professor logado leciona (para a área do professor)."""
+
+    turma_id: uuid.UUID
+    turma_nome: str
+    serie_nome: str
+    ano: int
+    disciplina_id: uuid.UUID
+    disciplina_nome: str
+
+
 class CobrancaInicial(BaseModel):
     """Opcional: gera 1 título de mensalidade ao matricular (§6). Sem isto, a
     matrícula não gera título — a secretaria cria manualmente depois."""

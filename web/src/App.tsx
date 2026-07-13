@@ -8,9 +8,10 @@ import { AlunosMatriculasPage } from "./pages/secretaria/AlunosMatriculasPage";
 import { CadastrosPage } from "./pages/secretaria/CadastrosPage";
 import { LancamentoPage } from "./pages/secretaria/LancamentoPage";
 import { RecadosPage } from "./pages/secretaria/RecadosPage";
+import { ProfessorPage } from "./pages/professor/ProfessorPage";
 import { ProtectedRoute } from "./routes/ProtectedRoute";
 import { useAuth } from "./lib/auth";
-import { ehSecretaria, rotaInicial } from "./lib/roles";
+import { ehProfessor, ehSecretaria, rotaInicial } from "./lib/roles";
 
 /** "/" decide o destino conforme o papel do usuário. */
 function RoleLanding() {
@@ -23,7 +24,14 @@ function RoleLanding() {
 /** Restringe uma rota aos papéis administrativos. */
 function ApenasSecretaria({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  if (!ehSecretaria(user)) return <Navigate to="/portal" replace />;
+  if (!ehSecretaria(user)) return <Navigate to="/" replace />;
+  return <>{children}</>;
+}
+
+/** Restringe uma rota ao papel de professor. */
+function ApenasProfessor({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+  if (!ehProfessor(user)) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 
@@ -38,6 +46,17 @@ export function App() {
         element={
           <ProtectedRoute>
             <PortalResponsavel />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/professor"
+        element={
+          <ProtectedRoute>
+            <ApenasProfessor>
+              <ProfessorPage />
+            </ApenasProfessor>
           </ProtectedRoute>
         }
       />

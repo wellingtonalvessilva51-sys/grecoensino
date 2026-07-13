@@ -8,6 +8,8 @@ Uso:
 
 from datetime import date, timedelta
 
+from sqlalchemy import select
+
 from src.core.database import SessionLocal
 from src.core.tenancy import reset_current_tenant, set_current_tenant
 from src.modules.academico import service as academico
@@ -33,6 +35,7 @@ from src.modules.financeiro.schemas import (
 from src.modules.identidade import service as identidade
 from src.modules.identidade.schemas import UsuarioCreate
 from src.modules.pessoas import service as pessoas
+from src.modules.pessoas.models import Pessoa
 from src.modules.pessoas.schemas import PessoaCreate, VinculoCreate
 from src.modules.tenancy import service as tenancy
 from src.modules.tenancy.schemas import TenantCreate
@@ -45,6 +48,7 @@ DEMOS = [
 SENHA_ADMIN = "admin12345"
 SENHA_RESP = "resp12345"
 SENHA_SEC = "sec12345"
+SENHA_PROF = "prof12345"
 
 
 def _garantir_secretaria(db) -> None:
@@ -73,6 +77,29 @@ def _garantir_admin(db, subdominio: str):
     return usuario
 
 
+def _garantir_professor_demo(db) -> None:
+    """Garante o usuário professor e o liga à pessoa 'Prof. Ana Lima' (para bases
+    já semeadas antes do login de professor existir)."""
+    email = "professor@escola-a.dev"
+    usuario = identidade.buscar_usuario_por_email(db, email)
+    if usuario is None:
+        usuario = identidade.criar_usuario(
+            db,
+            UsuarioCreate(nome="Ana Lima", email=email, senha=SENHA_PROF, papeis=["professor"]),
+        )
+        print(f"  professor criado: {email} / {SENHA_PROF}")
+    else:
+        print(f"  professor existe: {email}")
+
+    pessoa = db.scalars(
+        select(Pessoa).where(Pessoa.nome == "Prof. Ana Lima", Pessoa.deleted_at.is_(None))
+    ).first()
+    if pessoa is not None and pessoa.usuario_id is None:
+        pessoa.usuario_id = usuario.id
+        db.commit()
+        print("  professor vinculado à pessoa 'Prof. Ana Lima'")
+
+
 def _seed_portal(db, admin) -> None:
     """Cria um cenário do Portal do Responsável (responsável + aluno + dados)."""
     resp_email = "responsavel@escola-a.dev"
@@ -87,9 +114,13 @@ def _seed_portal(db, admin) -> None:
         db,
         UsuarioCreate(nome="Maria Souza", email=resp_email, senha=SENHA_RESP, papeis=["responsavel"]),
     )
+    u_prof = identidade.criar_usuario(
+        db,
+        UsuarioCreate(nome="Ana Lima", email="professor@escola-a.dev", senha=SENHA_PROF, papeis=["professor"]),
+    )
     p_resp = pessoas.criar_pessoa(db, PessoaCreate(nome="Maria Souza", usuario_id=u_resp.id))
     p_aluno = pessoas.criar_pessoa(db, PessoaCreate(nome="João Souza"))
-    p_prof = pessoas.criar_pessoa(db, PessoaCreate(nome="Prof. Ana Lima"))
+    p_prof = pessoas.criar_pessoa(db, PessoaCreate(nome="Prof. Ana Lima", usuario_id=u_prof.id))
     pessoas.criar_vinculo(
         db, VinculoCreate(responsavel_id=p_resp.id, aluno_id=p_aluno.id, financeiro=True)
     )
@@ -161,6 +192,7 @@ def _seed_portal(db, admin) -> None:
     )
 
     print(f"  cenário do portal criado: login {resp_email} / {SENHA_RESP}")
+    print(f"  professor criado: professor@escola-a.dev / {SENHA_PROF}")
 
 
 def main() -> None:
@@ -182,6 +214,7 @@ def main() -> None:
                 if dados.subdominio == "escola-a":
                     _garantir_secretaria(db)
                     _seed_portal(db, admin)
+                    _garantir_professor_demo(db)
             finally:
                 reset_current_tenant(token)
 

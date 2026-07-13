@@ -31,6 +31,7 @@ from src.modules.academico.schemas import (
     MatriculaRead,
     NotaCreate,
     NotaRead,
+    ProfessorAtribuicaoRead,
     SerieCreate,
     SerieRead,
     TurmaCreate,
@@ -144,6 +145,35 @@ def atribuir_disciplina(
 @router.get("/turmas/{turma_id}/disciplinas", response_model=list[AtribuicaoRead])
 def listar_atribuicoes(turma_id: uuid.UUID, db: Session = Depends(get_db), _: Principal = Depends(get_current_user)):
     return service.listar_atribuicoes(db, turma_id)
+
+
+@router.get("/turmas/{turma_id}/matriculas", response_model=list[MatriculaRead])
+def listar_matriculas_da_turma(
+    turma_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(get_current_user),
+):
+    """Alunos de uma turma. Acessível a quem leciona nela (ou papel privilegiado)."""
+    if service.obter_turma(db, turma_id) is None:
+        raise AppError("turma_inexistente", "Turma não encontrada.", status_code=404)
+    if not service.professor_leciona_turma(db, principal, turma_id):
+        raise AppError(
+            "sem_permissao_turma", "Sem permissão para esta turma.", status_code=403
+        )
+    return [
+        service.montar_matricula_read(db, m)
+        for m in service.listar_matriculas_da_turma(db, turma_id)
+    ]
+
+
+# --- Área do professor ------------------------------------------------------
+@router.get("/professor/atribuicoes", response_model=list[ProfessorAtribuicaoRead])
+def minhas_atribuicoes(
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(get_current_user),
+):
+    """Turmas+disciplinas que o professor logado leciona."""
+    return service.listar_atribuicoes_do_professor(db, principal)
 
 
 # --- Matrícula --------------------------------------------------------------

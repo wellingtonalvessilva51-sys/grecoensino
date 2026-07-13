@@ -39,6 +39,7 @@ from src.modules.academico.schemas import (
     MatriculaCreate,
     MatriculaRead,
     NotaCreate,
+    ProfessorAtribuicaoRead,
     SerieCreate,
     TurmaCreate,
     TurmaRead,
@@ -209,6 +210,45 @@ def listar_atribuicoes(db: Session, turma_id: uuid.UUID) -> list[TurmaDisciplina
     stmt = _ativos(TurmaDisciplinaProfessor).where(
         TurmaDisciplinaProfessor.turma_id == turma_id
     )
+    return list(db.scalars(stmt).all())
+
+
+def listar_atribuicoes_do_professor(
+    db: Session, principal
+) -> list[ProfessorAtribuicaoRead]:
+    """Turmas+disciplinas que o professor logado leciona (área do professor)."""
+    pessoa = pessoas.pessoa_do_usuario(db, principal.usuario.id)
+    if pessoa is None:
+        return []
+    tdps = db.scalars(
+        _ativos(TurmaDisciplinaProfessor).where(
+            TurmaDisciplinaProfessor.professor_id == pessoa.id
+        )
+    ).all()
+
+    resultado: list[ProfessorAtribuicaoRead] = []
+    for tdp in tdps:
+        turma = _obter(db, Turma, tdp.turma_id)
+        if turma is None:
+            continue
+        serie = _obter(db, Serie, turma.serie_id)
+        ano = _obter(db, AnoLetivo, turma.ano_letivo_id)
+        disc = _obter(db, Disciplina, tdp.disciplina_id)
+        resultado.append(
+            ProfessorAtribuicaoRead(
+                turma_id=turma.id,
+                turma_nome=turma.nome,
+                serie_nome=serie.nome if serie is not None else "",
+                ano=ano.ano if ano is not None else 0,
+                disciplina_id=tdp.disciplina_id,
+                disciplina_nome=disc.nome if disc is not None else "",
+            )
+        )
+    return resultado
+
+
+def listar_matriculas_da_turma(db: Session, turma_id: uuid.UUID) -> list[Matricula]:
+    stmt = _ativos(Matricula).where(Matricula.turma_id == turma_id)
     return list(db.scalars(stmt).all())
 
 

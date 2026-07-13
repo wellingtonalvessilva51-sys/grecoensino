@@ -8,8 +8,11 @@ export function temPapel(user: Usuario | null, ...codigos: string[]): boolean {
 export const ehSecretaria = (u: Usuario | null) =>
   temPapel(u, "secretaria", "admin_tenant", "financeiro");
 
-/** Rota inicial conforme o papel do usuário. */
+export const ehProfessor = (u: Usuario | null) => temPapel(u, "professor");
+
+/** Rota inicial conforme o papel do usuário (secretaria > professor > responsável). */
 export function rotaInicial(user: Usuario | null): string {
   if (ehSecretaria(user)) return "/secretaria";
+  if (ehProfessor(user)) return "/professor";
   return "/portal";
 }

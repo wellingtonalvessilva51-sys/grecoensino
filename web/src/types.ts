@@ -65,6 +65,15 @@ export interface Atribuicao {
   professor_id: string;
 }
 
+export interface ProfessorAtribuicao {
+  turma_id: string;
+  turma_nome: string;
+  serie_nome: string;
+  ano: number;
+  disciplina_id: string;
+  disciplina_nome: string;
+}
+
 export interface Nota {
   id: string;
   matricula_id: string;
