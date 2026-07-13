@@ -53,3 +53,4 @@ src/
 - `npm run dev` — servidor de desenvolvimento (HMR).
 - `npm run build` — typecheck + build de produção.
 - `npm run typecheck` — só checagem de tipos.
+- `npm run test` — testes (Vitest + Testing Library). `npm run test:watch` para watch.
