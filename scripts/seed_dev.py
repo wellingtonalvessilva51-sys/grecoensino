@@ -2,6 +2,10 @@
 
 Requer PostgreSQL acessível. Idempotente (pode rodar várias vezes).
 
+ATENÇÃO: cria usuários com senhas conhecidas. Só roda em `development`; em
+produção exige `ALLOW_DEMO_SEED=true` explícito (ver `scripts/bootstrap_prod.py`
+para criar a escola e o admin reais).
+
 Uso:
     venv\\Scripts\\python.exe -m scripts.seed_dev
 """
@@ -12,6 +16,7 @@ from datetime import date, timedelta
 
 from sqlalchemy import select
 
+from src.core.config import settings
 from src.core.database import SessionLocal
 from src.core.tenancy import reset_current_tenant, set_current_tenant
 from src.modules.academico import service as academico
@@ -48,10 +53,29 @@ DEMOS = [
     TenantCreate(nome="Escola A", subdominio="escola-a"),
     TenantCreate(nome="Escola B", subdominio="escola-b"),
 ]
-SENHA_ADMIN = "admin12345"
-SENHA_RESP = "resp12345"
-SENHA_SEC = "sec12345"
-SENHA_PROF = "prof12345"
+# Senhas demo: default fraco só serve para desenvolvimento local. Um deploy de
+# vitrine pode sobrescrever cada uma por env sem mexer no código.
+SENHA_ADMIN = os.environ.get("SEED_SENHA_ADMIN", "admin12345")
+SENHA_RESP = os.environ.get("SEED_SENHA_RESP", "resp12345")
+SENHA_SEC = os.environ.get("SEED_SENHA_SEC", "sec12345")
+SENHA_PROF = os.environ.get("SEED_SENHA_PROF", "prof12345")
+
+
+def guarda_ambiente() -> None:
+    """Aborta se o seed demo não estiver liberado para este ambiente.
+
+    Evita que um deploy real recrie logins demo com senha conhecida a cada
+    boot (era o comportamento antigo do CMD do Dockerfile).
+    """
+    if settings.demo_seed_enabled:
+        return
+    raise SystemExit(
+        f"seed_dev ABORTADO: ambiente '{settings.environment}' não permite seed demo.\n"
+        "Ele cria usuários com senhas conhecidas. Para uma escola real use:\n"
+        "    python -m scripts.bootstrap_prod\n"
+        "Se este deploy é mesmo uma vitrine/demo, libere com ALLOW_DEMO_SEED=true "
+        "(e defina SEED_SENHA_ADMIN/RESP/SEC/PROF)."
+    )
 
 
 def _garantir_secretaria(db) -> None:
@@ -199,6 +223,7 @@ def _seed_portal(db, admin) -> None:
 
 
 def main() -> None:
+    guarda_ambiente()
     with SessionLocal() as db:
         identidade.garantir_papeis_catalogo(db)
 

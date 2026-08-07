@@ -1,7 +1,21 @@
 """Configuração da aplicação via Pydantic Settings (lê variáveis de ambiente)."""
 
-from pydantic import field_validator
+import logging
+
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+logger = logging.getLogger(__name__)
+
+# Valores de placeholder que NUNCA podem valer como segredo em produção.
+JWT_SECRETS_PROIBIDOS = {
+    "",
+    "troque-em-producao",
+    "troque-por-um-segredo-forte",
+    "changeme",
+    "secret",
+}
+JWT_SECRET_TAMANHO_MINIMO = 32
 
 
 class Settings(BaseSettings):
@@ -32,14 +46,29 @@ class Settings(BaseSettings):
     # e usado pelo seed para criar a escola com id estável.
     demo_tenant_id: str | None = None
 
+    # Seed demo (`scripts.seed_dev`) cria usuários com senhas conhecidas. Se
+    # None, liga só em development. Em produção exige ALLOW_DEMO_SEED=true
+    # explícito — base com dado real nunca deve receber login demo.
+    allow_demo_seed: bool | None = None
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 
     @property
+    def is_production(self) -> bool:
+        return self.environment == "production"
+
+    @property
     def tenant_header_enabled(self) -> bool:
         if self.allow_tenant_header is not None:
             return self.allow_tenant_header
+        return self.environment == "development"
+
+    @property
+    def demo_seed_enabled(self) -> bool:
+        if self.allow_demo_seed is not None:
+            return self.allow_demo_seed
         return self.environment == "development"
 
     # Banco (PostgreSQL via psycopg3)
@@ -65,6 +94,28 @@ class Settings(BaseSettings):
 
     # IA (Anthropic)
     anthropic_api_key: str | None = None
+
+    @model_validator(mode="after")
+    def _exigir_segredo_de_producao(self) -> "Settings":
+        """Em produção o app se recusa a subir com JWT_SECRET de placeholder.
+
+        Segredo previsível = qualquer um forja um access token. Só bloqueia
+        valores conhecidamente inseguros (não quebra deploy por tamanho); um
+        segredo curto vira aviso no log.
+        """
+        if not self.is_production:
+            return self
+        if self.jwt_secret.strip().lower() in JWT_SECRETS_PROIBIDOS:
+            raise ValueError(
+                "JWT_SECRET está com valor de placeholder em produção. "
+                'Gere um segredo forte: python -c "import secrets;print(secrets.token_urlsafe(48))"'
+            )
+        if len(self.jwt_secret) < JWT_SECRET_TAMANHO_MINIMO:
+            logger.warning(
+                "JWT_SECRET tem menos de %d caracteres — considere rotacionar por um mais longo.",
+                JWT_SECRET_TAMANHO_MINIMO,
+            )
+        return self
 
 
 settings = Settings()

@@ -27,6 +27,10 @@ COPY src/ ./src/
 # Build do front no local esperado por src/main.py (web/dist).
 COPY --from=front /web/dist ./web/dist
 
+RUN chmod +x ./scripts/entrypoint.sh
+
 EXPOSE 8000
-# Aplica migrations, semeia (idempotente) e sobe o servidor na porta do Railway.
-CMD ["sh", "-c", "alembic upgrade head && python -m scripts.seed_dev && uvicorn src.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Migrations → bootstrap/seed condicional → uvicorn (ver scripts/entrypoint.sh).
+# O seed demo só roda com ALLOW_DEMO_SEED=true: um deploy real nunca recria
+# usuários de vitrine com senha conhecida.
+CMD ["./scripts/entrypoint.sh"]
