@@ -69,6 +69,30 @@ pula, e rodá-lo à mão em produção aborta com mensagem explicativa.
 6. **Gere o domínio**: *Settings → Networking → Generate Domain*.
 7. Abra a URL e entre com o admin criado no passo 4.
 
+## Caminho mais simples: manter como vitrine, com senhas fortes
+
+Só a aba **Variables** — sem shell, sem CLI. Acrescente:
+
+| Variável | Valor |
+|---|---|
+| `ALLOW_DEMO_SEED` | `true` |
+| `SEED_SENHA_ADMIN` | senha forte |
+| `SEED_SENHA_SEC` | senha forte |
+| `SEED_SENHA_PROF` | senha forte |
+| `SEED_SENHA_RESP` | senha forte |
+
+Clique **Deploy**. No boot, o seed **atualiza a senha dos usuários demo que já
+existem** (`admin@escola-a.dev` e companhia) para os valores das variáveis, e
+revoga as sessões abertas. As senhas fracas do código (`admin12345` etc.) param
+de funcionar.
+
+> Quem não tiver `SEED_SENHA_*` correspondente fica com a senha intocada — o
+> seed nunca reescreve uma senha com o default fraco.
+
+Isso deixa a vitrine apresentável e sem credencial pública, mas **não é uma
+escola real**: os dados continuam sendo os do cenário demo. Para dado real, siga
+a seção abaixo.
+
 ## Migrar um deploy que já rodou o seed demo
 
 Se a instância já tem `admin@escola-a.dev` e companhia (comportamento do

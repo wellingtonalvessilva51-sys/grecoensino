@@ -53,12 +53,33 @@ DEMOS = [
     TenantCreate(nome="Escola A", subdominio="escola-a"),
     TenantCreate(nome="Escola B", subdominio="escola-b"),
 ]
-# Senhas demo: default fraco só serve para desenvolvimento local. Um deploy de
-# vitrine pode sobrescrever cada uma por env sem mexer no código.
-SENHA_ADMIN = os.environ.get("SEED_SENHA_ADMIN", "admin12345")
-SENHA_RESP = os.environ.get("SEED_SENHA_RESP", "resp12345")
-SENHA_SEC = os.environ.get("SEED_SENHA_SEC", "sec12345")
-SENHA_PROF = os.environ.get("SEED_SENHA_PROF", "prof12345")
+
+
+def _senha(chave: str, default: str) -> tuple[str, bool]:
+    """Devolve (senha, veio_do_ambiente) para `SEED_SENHA_<chave>`."""
+    valor = os.environ.get(f"SEED_SENHA_{chave}")
+    return (valor, True) if valor else (default, False)
+
+
+# Senhas demo: o default fraco só serve para desenvolvimento local. Um deploy de
+# vitrine sobrescreve cada uma por env, sem mexer no código.
+SENHA_ADMIN, ADMIN_DO_ENV = _senha("ADMIN", "admin12345")
+SENHA_RESP, RESP_DO_ENV = _senha("RESP", "resp12345")
+SENHA_SEC, SEC_DO_ENV = _senha("SEC", "sec12345")
+SENHA_PROF, PROF_DO_ENV = _senha("PROF", "prof12345")
+
+
+def sincronizar_senha(db, usuario, senha: str, do_env: bool) -> None:
+    """Aplica a senha do ambiente a um usuário que JÁ existe.
+
+    Sem isso, definir `SEED_SENHA_*` numa base já semeada não teria efeito
+    algum (o seed pula quem existe) e as senhas fracas continuariam valendo.
+    Só age quando a variável foi informada — nunca reescreve com o default.
+    """
+    if not do_env:
+        return
+    identidade.definir_senha(db, usuario, senha)
+    print(f"  senha atualizada pelo ambiente: {usuario.email}")
 
 
 def guarda_ambiente() -> None:
@@ -80,8 +101,10 @@ def guarda_ambiente() -> None:
 
 def _garantir_secretaria(db) -> None:
     email = "secretaria@escola-a.dev"
-    if identidade.buscar_usuario_por_email(db, email) is not None:
+    existente = identidade.buscar_usuario_por_email(db, email)
+    if existente is not None:
         print(f"  secretaria existe: {email}")
+        sincronizar_senha(db, existente, SENHA_SEC, SEC_DO_ENV)
         return
     identidade.criar_usuario(
         db,
@@ -95,6 +118,7 @@ def _garantir_admin(db, subdominio: str):
     usuario = identidade.buscar_usuario_por_email(db, email)
     if usuario is not None:
         print(f"  admin existe: {email}")
+        sincronizar_senha(db, usuario, SENHA_ADMIN, ADMIN_DO_ENV)
         return usuario
     usuario = identidade.criar_usuario(
         db,
@@ -117,6 +141,7 @@ def _garantir_professor_demo(db) -> None:
         print(f"  professor criado: {email} / {SENHA_PROF}")
     else:
         print(f"  professor existe: {email}")
+        sincronizar_senha(db, usuario, SENHA_PROF, PROF_DO_ENV)
 
     pessoa = db.scalars(
         select(Pessoa).where(Pessoa.nome == "Prof. Ana Lima", Pessoa.deleted_at.is_(None))
@@ -130,8 +155,10 @@ def _garantir_professor_demo(db) -> None:
 def _seed_portal(db, admin) -> None:
     """Cria um cenário do Portal do Responsável (responsável + aluno + dados)."""
     resp_email = "responsavel@escola-a.dev"
-    if identidade.buscar_usuario_por_email(db, resp_email) is not None:
-        print(f"  cenário do portal já existe (login {resp_email} / {SENHA_RESP})")
+    existente = identidade.buscar_usuario_por_email(db, resp_email)
+    if existente is not None:
+        print(f"  cenário do portal já existe (login {resp_email})")
+        sincronizar_senha(db, existente, SENHA_RESP, RESP_DO_ENV)
         return
 
     principal = Principal(usuario=admin, papeis=["admin_tenant"])

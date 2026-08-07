@@ -71,6 +71,19 @@ def criar_usuario(db: Session, dados: UsuarioCreate) -> Usuario:
     return usuario
 
 
+def definir_senha(db: Session, usuario: Usuario, nova_senha: str) -> Usuario:
+    """Troca a senha e revoga as sessões abertas.
+
+    Revogar é parte da troca: uma senha rotacionada não deve deixar refresh
+    tokens antigos continuarem valendo.
+    """
+    usuario.senha_hash = hash_senha(nova_senha)
+    db.commit()
+    revogar_todas(db, usuario.id)
+    db.refresh(usuario)
+    return usuario
+
+
 def buscar_usuario_por_id(db: Session, usuario_id: uuid.UUID) -> Usuario | None:
     stmt = select(Usuario).where(
         Usuario.id == usuario_id,
